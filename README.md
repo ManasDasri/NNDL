@@ -4,6 +4,11 @@ Multi-label classification of commercial contract clauses into six risk-relevant
 categories, on [CUAD v1](https://www.atticusprojectai.org/cuad) — 510 contracts
 annotated by lawyers at The Atticus Project.
 
+> **New to the project? Read [the handbook](./handbook/README.md).** Fifteen
+> chapters covering the whole thing in order, assuming no machine learning
+> background: what the problem is, why each architecture was chosen, what every
+> number means, and which decisions we got wrong the first time.
+
 **Labels:** Cap on Liability · Non-Compete · License Grant · Audit Rights ·
 Termination for Convenience · Insurance
 
