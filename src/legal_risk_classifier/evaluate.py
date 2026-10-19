@@ -21,7 +21,7 @@ from .cuad import load_documents
 from .datasets import TokenizedChunkDataset, WordChunkDataset
 from .labels import NUM_LABELS
 from .metrics import compute_metrics, tune_thresholds
-from .pooling import pool_to_documents
+from .pooling import METHODS, POOLING_GRID, pool_to_documents
 from .splits import load_splits, select
 from .training import predict, resolve_device
 
@@ -33,7 +33,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--splits", type=Path, default=Path("data/processed/splits.json"))
     parser.add_argument("--split", default="test", choices=("train", "val", "test"))
     parser.add_argument("--batch_size", type=int, default=16)
-    parser.add_argument("--pooling", default="max", choices=("max", "mean", "top_k"))
+    parser.add_argument("--pooling", default="noisy_or", choices=METHODS + ("auto",),
+                        help="'auto' also selects the rule on validation, which overfits "
+                             "at this corpus size; see docs/pooling.md")
     parser.add_argument("--device", default="auto")
     parser.add_argument("--out", type=Path, default=None)
     return parser.parse_args()
@@ -93,6 +95,26 @@ def _score_split(model, kind, encoder, chunking, documents, assignment, split, b
     return chunks, y_true, y_prob
 
 
+def _calibrate_pooling(chunks, probs, requested: str) -> tuple[str, dict]:
+    """Pick the rule's constant on validation; with 'auto', pick the rule too."""
+    candidates = METHODS if requested == "auto" else (requested,)
+    best = None
+    for method in candidates:
+        for params in POOLING_GRID.get(method, [{}]):
+            _, true, pooled = pool_to_documents(chunks, probs, method=method, **params)
+            # Selected on average precision, not F1. With only 76 validation
+            # documents, F1 differences between rules sit inside run-to-run
+            # noise and selecting on it overfits: it picks the rule that best
+            # suits this particular split's thresholds, which then scores worst
+            # on test. AP is threshold-free and ranks the rules far more stably.
+            score = compute_metrics(true, pooled, thresholds=0.5)["macro_average_precision"]
+            if best is None or score > best[0]:
+                best = (score, method, params)
+    _, method, params = best
+    print(f"pooling: {method} {params or ''} (validation macro AP {best[0]:.3f})", flush=True)
+    return method, params
+
+
 def main() -> None:
     args = parse_args()
     model, summary, chunking, (kind, encoder) = _rebuild(args.run_dir)
@@ -119,22 +141,26 @@ def main() -> None:
     )
     chunk_metrics = compute_metrics(y_true, y_prob, thresholds=thresholds)
 
-    doc_ids, doc_true, doc_prob = pool_to_documents(chunks, y_prob, method=args.pooling)
+    # The rule's own constant (k, power, temperature) is calibrated on
+    # validation alongside the thresholds, never on the split being scored.
+    val_chunks, _, val_prob = _score_split(
+        model, kind, encoder, chunking, documents, assignment,
+        "val", args.batch_size, device,
+    )
+    pooling, pooling_params = _calibrate_pooling(val_chunks, val_prob, args.pooling)
+    doc_ids, doc_true, doc_prob = pool_to_documents(
+        chunks, y_prob, method=pooling, **pooling_params
+    )
 
     # Document-level thresholds are their own operating point, because a pooled
     # maximum is systematically higher than any single chunk probability. They
     # are tuned on validation and applied here: tuning them on the split being
     # scored would fit the decision boundary to the test set and report a
     # number nobody could reproduce on new contracts.
-    if args.split == "val":
-        doc_thresholds = tune_thresholds(doc_true, doc_prob)
-    else:
-        val_chunks, _, val_prob = _score_split(
-            model, kind, encoder, chunking, documents, assignment,
-            "val", args.batch_size, device,
-        )
-        _, val_true, val_pooled = pool_to_documents(val_chunks, val_prob, method=args.pooling)
-        doc_thresholds = tune_thresholds(val_true, val_pooled)
+    _, val_true, val_pooled = pool_to_documents(
+        val_chunks, val_prob, method=pooling, **pooling_params
+    )
+    doc_thresholds = tune_thresholds(val_true, val_pooled)
 
     document_metrics = compute_metrics(doc_true, doc_prob, thresholds=doc_thresholds)
 
@@ -142,7 +168,8 @@ def main() -> None:
         "run_dir": str(args.run_dir),
         "model": summary["model"],
         "split": args.split,
-        "pooling": args.pooling,
+        "pooling": pooling,
+        "pooling_params": pooling_params,
         "counts": {"documents": len(doc_ids), "chunks": len(chunks)},
         "document_thresholds_tuned_on": "val" if args.split != "val" else "val (self)",
         "chunk_level": chunk_metrics,
@@ -153,7 +180,8 @@ def main() -> None:
 
     print(f"{summary['model']}  {args.split}  ({len(chunks)} chunks, {len(doc_ids)} documents)")
     print(f"  chunk    macro F1 {chunk_metrics['macro_f1']:.3f}  AP {chunk_metrics['macro_average_precision']:.3f}")
-    print(f"  document macro F1 {document_metrics['macro_f1']:.3f}  AP {document_metrics['macro_average_precision']:.3f}")
+    print(f"  document macro F1 {document_metrics['macro_f1']:.3f}  AP {document_metrics['macro_average_precision']:.3f}"
+          f"  [{pooling} {pooling_params or ''}]")
     print(f"  -> {out}")
 
 
