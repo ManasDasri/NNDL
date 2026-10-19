@@ -8,7 +8,7 @@ Adding a fourth architecture would add a result; it would not add an answer.
 | TextCNN | Baseline floor | none — embeddings learned from 358 contracts | chunk | ~4M |
 | `bert-base-uncased` | General-domain control | BooksCorpus + English Wikipedia, ~3.3B words | 512 | 110M |
 | `nlpaueb/legal-bert-base-uncased` | Domain-adapted | 12GB of legislation, court cases and contracts | 512 | 110M |
-| `allenai/longformer-base-4096` | Long context | RoBERTa, continued on long documents | 4096 | 149M |
+| **`allenai/longformer-base-4096`** | Long context — **the default** | RoBERTa, continued on long documents | 4096 | 149M |
 
 ## The two experiments
 
@@ -59,6 +59,17 @@ finding about the task, not a failed experiment — and it comes with a cost
 argument attached, since Longformer is 35% larger and materially slower to
 train.
 
+## Why Longformer is the default
+
+`legal-risk-train-transformer` trains Longformer unless told otherwise. Not
+because it is expected to win Problem 2 — that is still open — but because it is
+the only model whose window usually holds a clause together with the contract
+around it, and because fewer, larger chunks make the document-level pooling
+problem better posed. One correction to the intuition: a wider window produces
+**fewer and larger** chunks, 3.9 per contract against BERT's 37.9, not smaller
+ones. BERT and Legal-BERT remain first-class, because without them Problem 1 has
+no experiment.
+
 ## Why `[CLS]` gets global attention
 
 Longformer's local attention window cannot pool a sequence on its own: no
@@ -89,6 +100,10 @@ variance between legal models, which is not one of our questions.
 **A generative LLM prompted for clause extraction.** A different paradigm with
 no fine-tuning on our splits, so its score would not be comparable to the
 others — and the assignment asks for trained classifiers.
+
+**A learned chunk aggregator.** Built, measured, and beaten by fixed noisy-OR on
+both F1 and average precision. Kept as a documented negative result in
+[pooling.md](./pooling.md) rather than as a component.
 
 **Hierarchical BERT over chunk embeddings.** The obvious next step if chunk
 pooling proves to be the bottleneck. It is deferred rather than dismissed:

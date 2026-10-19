@@ -7,7 +7,9 @@ annotated by lawyers at The Atticus Project.
 > **New to the project? Read [the handbook](./handbook/README.md).** Fifteen
 > chapters covering the whole thing in order, assuming no machine learning
 > background: what the problem is, why each architecture was chosen, what every
-> number means, and which decisions we got wrong the first time.
+> number means, and which decisions we got wrong the first time. For the
+> engineer-facing version of the same ground, see
+> [docs/architecture.md](./docs/architecture.md).
 
 **Labels:** Cap on Liability · Non-Compete · License Grant · Audit Rights ·
 Termination for Convenience · Insurance
@@ -17,6 +19,7 @@ pip install -e ".[analysis]"
 legal-risk-prepare                     # CUAD spans + document-level splits
 legal-risk-analyze                     # dataset report and figures
 legal-risk-train-cnn --epochs 12       # the CNN baseline
+legal-risk-train-transformer           # defaults to Longformer; needs a GPU
 legal-risk-evaluate --run_dir outputs/cnn --split test
 ```
 
@@ -27,12 +30,15 @@ Everything runs from the command line, so a notebook never holds logic. The
 
 Held-out test split: 76 contracts, 3,314 windows, never seen in training.
 
-| Model | Window F1 | Document F1 | Status |
-|---|---:|---:|---|
-| TextCNN | **0.663** | **0.840** | trained |
-| BERT | — | — | awaiting a GPU run |
-| Legal-BERT | — | — | awaiting a GPU run |
-| Longformer | — | — | awaiting a GPU run |
+| Model | Window F1 | Document F1 | Document AP | Status |
+|---|---:|---:|---:|---|
+| TextCNN | **0.663** | **0.846** | **0.904** | trained |
+| BERT | — | — | — | awaiting a GPU run |
+| Legal-BERT | — | — | — | awaiting a GPU run |
+| Longformer | — | — | — | awaiting a GPU run |
+
+Document scores use noisy-OR pooling over windows, the default since it beat max
+on both metrics — see [docs/pooling.md](./docs/pooling.md).
 
 Per class, CNN, window level:
 
@@ -121,9 +127,12 @@ scored on an identical test set.
 to 0.83, because each label has its own positive rate and a single 0.5 cut is
 arbitrary.
 
-**A contract is flagged when its strongest window clears the threshold.** The task
-is existential. Averaging across windows instead drops document macro F1 from 0.77
-to 0.62 on the same predictions.
+**A contract's windows are combined as independent evidence, not by taking the
+strongest.** Max-pooling cannot tell 0.80-and-0.79 apart from 0.80-alone, though the
+first has two observations; noisy-OR combines them to 0.958. Plain averaging is far
+worse than either, at 0.511 document macro F1 against noisy-OR's 0.846, because a
+real clause gets diluted across forty windows that legitimately contain nothing.
+Seven rules and a learned aggregator were measured: [docs/pooling.md](./docs/pooling.md).
 
 ## Layout
 
@@ -134,12 +143,15 @@ src/legal_risk_classifier/
   textcnn.py vocab.py                CNN baseline
   pretrained.py                      BERT / Legal-BERT / Longformer
   training.py datasets.py metrics.py one training loop for every model
-  pooling.py evaluate.py compare.py  window and document scoring
+  prepare.py                         CUAD spans and persisted splits
+  train_cnn.py train_transformer.py  the two entry points
+  pooling.py learned_pooling.py      seven rules plus the one that lost
+  evaluate.py compare.py             window and document scoring
   attribution.py runtime.py demo.py  interpretability and the browser demo
-  export_dashboard.py                results page data
+  export_dashboard.py export_hf.py   results page and Hugging Face publishing
 notebooks/                           Colab runners
 docs/                                generated reports and the model justification
-tests/                               64 checks, no pytest required
+tests/                               90 checks, no pytest required
 ```
 
 ## Tests
@@ -150,14 +162,17 @@ python  tests/test_analysis.py           #  9 — standard library only
 python  tests/test_model_layer.py        # 14 — needs torch
 python  tests/test_pretrained.py         # 11 — needs torch, runs offline
 python  tests/test_pooling.py            #  7 — needs torch
+python  tests/test_pooling_rules.py      #  9 — the seven rules, no torch
+python  tests/test_learned_pooling.py    # 10 — the aggregator's contract
 python  tests/test_interpretability.py   # 11 — needs torch
+python  tests/test_export_hf.py          #  7 — no network
 ```
 
 No framework. Each file runs as a script and prints what passed.
 
 Tests carry the reasoning behind decisions, so a decision cannot be quietly
 reversed: that a whole CUAD question is not a category, that a clause must not
-label windows which do not contain it, that mean pooling buries a true positive,
+label windows which do not contain it, that mean pooling buries a true positive, that max cannot see corroboration,
 that BERT and Legal-BERT differ only in checkpoint, and that metrics expose an
 all-negative model which accuracy would rate above 95%.
 
