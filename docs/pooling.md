@@ -124,13 +124,17 @@ The parameterisation was chosen so it *contains* the rules it competes with:
 
 So it should not be able to lose except by overfitting. It lost anyway.
 
-| Fitted on | K | Test macro F1 | Test macro AP |
-|---|---:|---:|---:|
-| validation (76 docs) | 3 | 0.838 | 0.903 |
-| validation | 5 | 0.830 | 0.896 |
-| train (358 docs) | 3 | 0.836 | 0.899 |
-| train | 5 | 0.837 | 0.899 |
-| **noisy_or (fixed)** | — | **0.846** | **0.904** |
+| Fitted on | K | L2 | Test macro F1 | Test macro AP |
+|---|---:|---:|---:|---:|
+| validation (76 docs) | 3 | 10.0 | 0.833 | 0.903 |
+| validation | 5 | 1.0 | 0.843 | 0.899 |
+| train (358 docs) | 3 | 1.0 | 0.833 | 0.899 |
+| train | 5 | 1.0 | 0.834 | 0.899 |
+| **noisy_or (fixed)** | — | — | **0.846** | **0.904** |
+
+No configuration of the learned aggregator beats noisy_or on either metric.
+The closest on F1 is 0.843 against 0.846; the closest on average precision is
+0.903 against 0.904.
 
 Two explanations were checked and one was eliminated.
 
@@ -142,7 +146,7 @@ are effectively the same, so fitting on train is legitimate — it simply does
 not help.
 
 **It is that there is nothing better to find.** The fitted weights come out as
-`(+0.51, -0.06, +0.05)` — overwhelmingly the top chunk, with the remaining
+`(+0.50, -0.08, +0.06)` — overwhelmingly the top chunk, with the remaining
 terms near zero and alternating in sign, which is what noise looks like. Given
 the freedom to weight five chunks however it liked, and 358 documents to learn
 from, the fit converged on approximately max-pooling and could not beat a fixed
