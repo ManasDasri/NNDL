@@ -26,7 +26,7 @@ from .training import TrainingConfig, predict, resolve_device, train
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--model", default="legal-bert", help=f"{' | '.join(MODELS)} | any HF id")
+    parser.add_argument("--model", default="longformer", help=f"{' | '.join(MODELS)} | any HF id")
     parser.add_argument("--documents", type=Path, default=Path("data/processed/documents.jsonl"))
     parser.add_argument("--splits", type=Path, default=Path("data/processed/splits.json"))
     parser.add_argument("--output_dir", type=Path, default=None)

@@ -106,6 +106,56 @@ floor, selection fits the split rather than the task. The flag remains for a
 larger corpus, with this warning attached. **The default is a fixed, principled
 choice, and that is deliberate.**
 
+## A learned aggregator was tried, and lost
+
+If choosing between fixed rules is hard, the obvious next step is to stop
+choosing and learn the combination. `learned_pooling.py` does that: a
+document's chunk probabilities for one label are sorted, the strongest K
+converted to log-odds, and the score is a weighted sum fitted by logistic
+regression.
+
+The parameterisation was chosen so it *contains* the rules it competes with:
+
+| Rule | Equivalent weights |
+|---|---|
+| max | `(1, 0, 0, …)` |
+| top-k mean | `(1/k, …, 1/k, 0, …)` |
+| noisy-OR | a positive, roughly equal weighting |
+
+So it should not be able to lose except by overfitting. It lost anyway.
+
+| Fitted on | K | Test macro F1 | Test macro AP |
+|---|---:|---:|---:|
+| validation (76 docs) | 3 | 0.838 | 0.903 |
+| validation | 5 | 0.830 | 0.896 |
+| train (358 docs) | 3 | 0.836 | 0.899 |
+| train | 5 | 0.837 | 0.899 |
+| **noisy_or (fixed)** | — | **0.846** | **0.904** |
+
+Two explanations were checked and one was eliminated.
+
+**It is not miscalibration from fitting on seen data.** The obvious worry is
+that chunk probabilities on the training split are overconfident, since the
+model was trained there. Measured, they are not: mean per-chunk maximum
+probability is 0.169 on train against 0.166 on validation. The distributions
+are effectively the same, so fitting on train is legitimate — it simply does
+not help.
+
+**It is that there is nothing better to find.** The fitted weights come out as
+`(+0.51, -0.06, +0.05)` — overwhelmingly the top chunk, with the remaining
+terms near zero and alternating in sign, which is what noise looks like. Given
+the freedom to weight five chunks however it liked, and 358 documents to learn
+from, the fit converged on approximately max-pooling and could not beat a fixed
+evidence combiner.
+
+The module is kept rather than deleted, for two reasons. It is the first thing
+a reviewer asks about after seeing a hand-chosen rule, and the answer should be
+evidence rather than speculation. And the experiment is worth repeating once
+Longformer is trained, where three or four large chunks make a different
+learning problem than forty small ones.
+
+It is not the default, and nothing depends on it.
+
 ## Effect of chunk count
 
 Longformer's window is ~2,600 words against BERT's ~300, so it produces far
