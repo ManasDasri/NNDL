@@ -58,7 +58,7 @@ reported because they answer different questions:
 | Level | Question | CNN score |
 |---|---|---:|
 | Window | Can it recognise a clause in the text in front of it? | 0.663 |
-| Document | Does it find the clause somewhere in the contract? | 0.840 |
+| Document | Does it find the clause somewhere in the contract? | 0.846 |
 
 Document level is the product question. Window level is the harder, more honest
 measure of the model. Quoting only one would misrepresent the system — flattering

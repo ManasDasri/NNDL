@@ -74,7 +74,7 @@ recombining the answers — exists because of those three numbers.
 ## What a "good" result looks like
 
 The model currently gets **0.663** on a measure called macro F1 at the window
-level, and **0.840** when its window-level answers are combined into a verdict
+level, and **0.846** when its window-level answers are combined into a verdict
 about the whole contract. [Chapter 9](09-evaluation.md) explains what those
 numbers mean and why we report both.
 
