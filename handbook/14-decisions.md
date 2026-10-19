@@ -63,7 +63,9 @@ Every design choice, what we rejected, and why. One page, for when someone asks
 | **Never report accuracy** | Report it alongside | An all-negative model scores >95%. It would be flattering and meaningless. |
 | Per-label thresholds tuned on **validation** | Fixed 0.5 | Each label has its own positive rate. Ours span 0.22–0.83. |
 | Report **both** window and document level | Pick one | They answer different questions. Quoting one misrepresents the system. |
-| **Max** pooling | Mean; top-k | Existential task. Mean buries a true positive (0.95 → <0.03 across 60 windows). Top-k scores marginally higher on F1 but inside the noise floor. |
+| **Noisy-OR** pooling | Max; mean; top-k; learned | Max cannot distinguish 0.80+0.79 from 0.80 alone — it discards corroboration. Noisy-OR combines independent evidence, leads on AP (0.904 vs 0.899), and is never worse than max. Mean is decisively bad (0.511). |
+| Automatic rule selection **rejected** | Pick the rule on validation | Overfits at 76 documents: selects the worst serious rule on F1, a mediocre one on AP. Flag kept with a warning. |
+| Learned aggregator **rejected as default** | Learn the combination | Can represent max, top-k and noisy-OR, yet loses (0.838 vs 0.846) even fitted on 358 documents. Kept as a documented experiment. |
 | Document thresholds tuned **separately**, on validation | Reuse window thresholds; tune on test | A pooled max is systematically higher. Tuning on test is leakage — it cost us 0.067 of fake score ([ch 9](09-evaluation.md#the-leak-we-caught)). |
 | Report **average precision** too | F1 only | Threshold-free, so it is the stable number when thresholds are in question. |
 | **Generate** the comparison table | Write it by hand | No number reaches the write-up by being copied. |

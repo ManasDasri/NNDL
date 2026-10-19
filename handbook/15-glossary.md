@@ -56,7 +56,9 @@ Every term this handbook uses, in one line each.
 
 **Parameters / weights** — the adjustable numbers. CNN ~4M, BERT ~110M.
 
-**Pooling** — reducing many values to fewer. *Max-over-time* keeps the strongest response across positions.
+**Pooling** — reducing many values to fewer. Inside the CNN, *max-over-time* keeps a filter's strongest response across positions. Across a document, *noisy-OR* combines every window's probability as independent evidence.
+
+**Noisy-OR** — combining independent evidence as `1 − Π(1 − pᵢ)`. Two windows at 0.80 and 0.79 give 0.958, which max cannot express.
 
 **pos_weight** — multiplier making positive examples count more in the loss. Ours run 23×–66×.
 
