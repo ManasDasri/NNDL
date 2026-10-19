@@ -69,33 +69,44 @@ in one direction, unfair in the other.
 A contract yields ~30 windows and thus 30 sets of predictions. How do you get
 one answer?
 
-**Max-pooling**: the strongest window decides.
+**Noisy-OR**: every window contributes independent evidence.
 
-The task is **existential** — "does this contract contain a liability cap?" A
-clause appearing in one window of a sixty-window contract means the contract
-contains it. Averaging would bury that single positive under fifty-nine
-negatives.
+The default used to be max-pooling — keep the strongest window, discard the
+rest. That has a specific defect. A contract scoring **0.80 and 0.79** in two
+windows is indistinguishable from one scoring **0.80 and 0.02**:
 
-We tested this rather than assuming it, and a test constructs the exact case: a
-true positive at 0.95 confidence in a 60-window document. Mean pooling drops it
-below **0.03**.
+| Rule | 0.80 + 0.79 | 0.80 alone | Separates? |
+|---|---:|---:|---|
+| max | 0.8000 | 0.8000 | **no** |
+| **noisy_or** | **0.9761** | **0.8887** | yes |
 
-Measured on real predictions:
+Two windows independently suggesting a clause is stronger evidence than one.
+Max is an order statistic, so everything below the maximum is thrown away.
 
-| Pooling | Document macro F1 | Document macro AP |
+Noisy-OR treats each window as independent evidence:
+`P(present) = 1 − Π(1 − pᵢ)`. Measured on the test split, every rule's constant
+and all thresholds calibrated on validation:
+
+| Rule | Document macro F1 | Document macro AP |
 |---|---:|---:|
-| top-k (k=3) | 0.797 | 0.862 |
-| max | 0.773 | **0.872** |
-| mean | 0.624 | 0.721 |
+| **noisy_or** | **0.846** | **0.904** |
+| top_k (k=2) | 0.846 | 0.891 |
+| max | 0.840 | 0.899 |
+| mean | 0.511 | 0.817 |
 
-**Mean is clearly worse**, by about 0.15, and that part is solid.
+**Mean pooling is decisively bad** (0.511), and that result is solid.
 
-**Max versus top-k is not settled by these numbers.** Max ranks better; top-k
-places its operating point better; across 76 documents the difference is inside
-our ±0.03 noise floor. Max remains the default because ranking is the more
-stable property and the existential argument holds — *not* because 0.797 beats
-0.773. Saying so is more useful than picking the bigger number and calling it a
-result.
+**The gap between the serious rules is inside the noise floor.** From max
+(0.840) to noisy_or (0.846) is 0.006 against ±0.03 variance. F1 does not
+separate them on 76 documents, and any claim that it does is over-reading.
+noisy_or is the default because its mechanism matches the task, it leads on the
+threshold-free metric, and it is never worse than max on either — not because
+0.846 beats 0.840.
+
+Two things were tried and rejected, both recorded in
+[`docs/pooling.md`](../docs/pooling.md): selecting the rule automatically on
+validation (overfits — picks the worst rule), and learning the aggregation
+function (loses to noisy_or even with 358 documents to fit on).
 
 Document-level thresholds are tuned **separately**, because a pooled maximum is
 systematically higher than any single window probability.

@@ -119,6 +119,27 @@ pooling turns out to be the bottleneck. Deferred rather than dismissed: worth
 building only once evaluation shows that pooling, not window classification, is
 what limits the score.
 
+## Longformer is the default
+
+`legal-risk-train-transformer` defaults to `longformer`. BERT and Legal-BERT
+stay in the registry, because dropping them would remove Problem 1 — the
+comparison that asks whether legal pretraining helps — and that is a graded
+deliverable, not an optional extra.
+
+One consequence worth stating, because it is easy to get backwards:
+**Longformer produces fewer and larger chunks, not more.** Measured on this
+corpus:
+
+| Model | Window | Chunks per contract |
+|---|---:|---:|
+| BERT / Legal-BERT | 300 words | 37.9 |
+| Longformer | 2,600 words | **3.9** |
+
+That matters for [chapter 9](09-evaluation.md#pooling-window-answers--contract-verdict).
+Evidence spread across windows is most acute on BERT, where a clause genuinely
+fragments. Under Longformer each window already holds the clause and its
+surrounding context, so there is less to recombine.
+
 ## Status
 
 The registry, wrapper, training CLI and tests are complete and verified — both
