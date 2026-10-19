@@ -57,7 +57,10 @@ MODELS: dict[str, ModelSpec] = {
         window_words=2600,
         overlap_words=400,
         needs_global_attention=True,
-        note="Sliding-window attention over an 8x longer context.",
+        note="Sliding-window attention over an 8x longer context. The project's "
+             "primary model: one window holds roughly 2,600 words against BERT's "
+             "300, so a clause is usually seen with its surrounding contract "
+             "rather than split across windows.",
     ),
 }
 
