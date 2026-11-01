@@ -75,10 +75,21 @@ def export_cnn(run_dir: Path, out_dir: Path) -> None:
     The TextCNN is not a transformers architecture, so there is no
     `from_pretrained` for it. The card says so and points at the loader.
     """
-    for name in ("model.pt", "vocab.json", "metrics.json", "training.json"):
+    for name in ("model.pt", "vocab.json"):
         source = run_dir / name
         if source.exists():
             shutil.copy2(source, out_dir / name)
+
+
+# Shipped with every model, so a run trained on remote hardware can be compared
+# and re-scored from the Hub without the machine that trained it.
+RESULT_FILES = ("metrics.json", "training.json", "evaluation_test.json")
+
+
+def copy_results(run_dir: Path, out_dir: Path) -> None:
+    for name in RESULT_FILES:
+        if (run_dir / name).exists():
+            shutil.copy2(run_dir / name, out_dir / name)
 
 
 def render_card(summary: dict, run_dir: Path, repo_id: str | None) -> str:
@@ -188,8 +199,8 @@ def render_card(summary: dict, run_dir: Path, repo_id: str | None) -> str:
             "    print(model.config.id2label[i], round(float(score), 3))",
             "```",
             "",
-            "Pass one window at a time and take the maximum per label across a contract's",
-            "windows; that is how the document-level figure above is computed.",
+            "Pass one window at a time and combine a contract's windows per label with",
+            "noisy-OR, 1 - prod(1 - p); that is how the document-level figure above is computed.",
         ]
 
     lines += [
@@ -219,6 +230,7 @@ def main() -> None:
         export_cnn(args.run_dir, out_dir)
     else:
         export_transformer(args.run_dir, out_dir, summary)
+    copy_results(args.run_dir, out_dir)
 
     (out_dir / "README.md").write_text(
         render_card(summary, args.run_dir, args.repo_id), encoding="utf-8"
