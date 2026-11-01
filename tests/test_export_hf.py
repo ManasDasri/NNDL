@@ -15,7 +15,9 @@ import torch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from legal_risk_classifier.export_hf import export_cnn, export_transformer, render_card  # noqa: E402
+from legal_risk_classifier.export_hf import (  # noqa: E402
+    RESULT_FILES, copy_results, export_cnn, export_transformer, render_card,
+)
 from legal_risk_classifier.labels import LABEL_NAMES, NUM_LABELS  # noqa: E402
 from legal_risk_classifier.pretrained import ModelSpec, PretrainedClassifier  # noqa: E402
 
@@ -148,10 +150,22 @@ def test_cnn_export_copies_what_the_loader_needs() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         run, out = Path(tmp) / "run", Path(tmp) / "hf"
         run.mkdir(); out.mkdir()
-        for name in ("model.pt", "vocab.json", "metrics.json", "training.json"):
+        for name in ("model.pt", "vocab.json"):
             (run / name).write_text("{}", encoding="utf-8")
         export_cnn(run, out)
-        assert {p.name for p in out.iterdir()} == {"model.pt", "vocab.json", "metrics.json", "training.json"}
+        assert {p.name for p in out.iterdir()} == {"model.pt", "vocab.json"}
+
+
+def test_every_export_ships_its_results() -> None:
+    # A transformer trained on remote hardware is only comparable if its scores
+    # travel with the weights; the trainer's disk is gone when the job ends.
+    with tempfile.TemporaryDirectory() as tmp:
+        run, out = Path(tmp) / "run", Path(tmp) / "hf"
+        run.mkdir(); out.mkdir()
+        for name in RESULT_FILES:
+            (run / name).write_text("{}", encoding="utf-8")
+        copy_results(run, out)
+        assert {p.name for p in out.iterdir()} == set(RESULT_FILES)
 
 
 def test_cnn_export_tolerates_a_missing_optional_file() -> None:

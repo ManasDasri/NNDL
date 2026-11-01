@@ -17,6 +17,11 @@ copied back down to a laptop.
 
     hf jobs uv run deploy/jobs/train_on_hub.py --flavor t4-small \
         --secrets HF_TOKEN --env MODEL=legal-bert --env REPO_ID=user/name
+
+Longformer needs a small batch and checkpointing to fit:
+
+    --env MODEL=longformer --env BATCH_SIZE=4 --env GRAD_ACCUMULATION=4 \
+    --env GRADIENT_CHECKPOINTING=1
 """
 
 from __future__ import annotations
@@ -31,6 +36,9 @@ MODEL = os.environ.get("MODEL", "legal-bert")
 REPO_ID = os.environ.get("REPO_ID", "")
 EPOCHS = os.environ.get("EPOCHS", "3")
 BATCH_SIZE = os.environ.get("BATCH_SIZE", "16")
+GRAD_ACCUMULATION = os.environ.get("GRAD_ACCUMULATION", "1")
+# Longformer at 4,096 tokens does not fit a useful batch without it.
+GRADIENT_CHECKPOINTING = os.environ.get("GRADIENT_CHECKPOINTING", "0") == "1"
 CHECKOUT = Path("/tmp/nndl")
 
 
@@ -59,12 +67,15 @@ def main() -> None:
     run(sys.executable, "-m", "legal_risk_classifier.prepare",
         "--cuad_json", "data/CUAD_v1.json", "--out_dir", "data/processed")
 
-    run(sys.executable, "-m", "legal_risk_classifier.train_transformer",
-        "--model", MODEL, "--epochs", EPOCHS, "--batch_size", BATCH_SIZE,
-        "--grad_accumulation", "1", "--output_dir", str(output_dir))
+    train = [sys.executable, "-m", "legal_risk_classifier.train_transformer",
+             "--model", MODEL, "--epochs", EPOCHS, "--batch_size", BATCH_SIZE,
+             "--grad_accumulation", GRAD_ACCUMULATION, "--output_dir", str(output_dir)]
+    if GRADIENT_CHECKPOINTING:
+        train.append("--gradient_checkpointing")
+    run(*train)
 
     run(sys.executable, "-m", "legal_risk_classifier.evaluate",
-        "--run_dir", str(output_dir), "--split", "test", "--pooling", "max")
+        "--run_dir", str(output_dir), "--split", "test")
 
     if REPO_ID:
         run(sys.executable, "-m", "legal_risk_classifier.export_hf",
