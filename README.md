@@ -26,16 +26,16 @@ legal-risk-evaluate --run_dir outputs/cnn --split test
 Everything runs from the command line, so a notebook never holds logic. The
 [notebooks](./notebooks) are Colab runners that install and call these commands.
 
-## Results so far
+## Results
 
 Held-out test split: 76 contracts, 3,314 windows, never seen in training.
 
-| Model | Window F1 | Document F1 | Document AP | Status |
-|---|---:|---:|---:|---|
-| TextCNN | **0.663** | **0.846** | **0.904** | trained |
-| BERT | — | — | — | awaiting a GPU run |
-| Legal-BERT | — | — | — | awaiting a GPU run |
-| Longformer | — | — | — | awaiting a GPU run |
+| Model | Window F1 | Window AP | Document F1 | Document AP | Status |
+|---|---:|---:|---:|---:|---|
+| TextCNN | 0.663 | — | 0.846 | 0.904 | trained, published |
+| **BERT** | **0.723** | 0.736 | **0.879** | 0.933 | trained |
+| **Legal-BERT** | 0.718 | **0.769** | 0.875 | **0.936** | trained, one seed |
+| Longformer | — | — | — | — | awaiting a GPU run |
 
 Document scores use noisy-OR pooling over windows, the default since it beat max
 on both metrics — see [docs/pooling.md](./docs/pooling.md).
@@ -68,6 +68,15 @@ any gap between them measures domain adaptation and nothing else.
 The hypothesis is specific: the gain should concentrate in labels carried by legal
 vocabulary and be smallest for labels carried by ordinary English. Read the
 per-class columns, not the macro score. See [docs/model-selection.md](./docs/model-selection.md).
+
+**Result: no measurable advantage.** Legal-BERT is 0.005 below BERT on window F1,
+while BERT trained with a second seed moved 0.006 from itself. Legal-BERT ranks
+slightly better (AP 0.769 against 0.736 and 0.757), and the two tie at document
+level. The per-label prediction did not hold: the only clear gain is Termination
+for Convenience (+0.064 F1), and Cap on Liability, the most jargon-heavy label,
+gained nothing. Both clearly beat the CNN, most on Non-Compete (0.317 → 0.560).
+Legal-BERT has a single seed so far. Full analysis in
+[handbook chapter 12](./handbook/12-results.md).
 
 ### Problem 2 — how should whole contracts be represented?
 

@@ -109,12 +109,15 @@ which is what confirmed the diagnosis rather than a regression.
 
 Test split: 76 contracts, 3,314 windows, never trained on.
 
-| Model | Window macro F1 | Document macro F1 | Document macro AP |
-|---|---:|---:|---:|
-| TextCNN | 0.663 | 0.846 | 0.904 |
-| BERT | — | — | — |
-| Legal-BERT | — | — | — |
-| Longformer | — | — | — |
+| Model | Window macro F1 | Window macro AP | Document macro F1 | Document macro AP |
+|---|---:|---:|---:|---:|
+| TextCNN | 0.663 | — | 0.846 | 0.904 |
+| BERT | 0.723 | 0.736 | 0.879 | 0.933 |
+| Legal-BERT | 0.718 | 0.769 | 0.875 | 0.936 |
+| Longformer | — | — | — | — |
+
+BERT and Legal-BERT come from notebook 3 on a Colab T4: 3 epochs, lr 2e-5,
+batch 16. A second BERT seed scored 0.729 window F1 / 0.757 AP.
 
 Per-label CNN thresholds, tuned on validation: Cap on Liability 0.78 ·
 Non-Compete 0.28 · License Grant 0.32 · Audit Rights 0.39 · Termination for
@@ -126,16 +129,21 @@ GPU. Nothing smaller than that is a finding.
 
 ### Status of the two problems
 
-Both are **unanswered**, and the reason is compute, not code. BERT, Legal-BERT
-and Longformer are implemented, tested offline, and unrun — no transformer has
-been trained yet. Problem 1 (does legal pretraining help?) needs BERT and
-Legal-BERT; Problem 2 (does longer context help?) needs BERT and Longformer.
-Until those runs exist the only measured model is the baseline.
+**Problem 1 is answered: no measurable advantage from legal pretraining.**
+Legal-BERT is 0.005 below BERT on window F1, inside the 0.006 that BERT moved
+between its own two seeds. It ranks marginally better on window AP and ties at
+document level. The predicted vocabulary-specific gains did not appear; the only
+clear per-label gain is Termination for Convenience. Legal-BERT has one seed, so
+the AP edge is not yet claimable. Detail in
+[handbook chapter 12](../handbook/12-results.md).
 
-Queued behind the first GPU run: `legal-risk-compare`, a regenerated dashboard,
-`legal-risk-export-hf` for the new checkpoints, handbook chapter 12, and a
-re-run of the learned aggregator — 3.9 chunks per contract is a different
-learning problem from 37.9.
+**Problem 2 is unanswered** until Longformer is trained (notebook 4).
+
+Still owed: notebook 3's run directories never left Colab, so the numbers above
+are read from its printed output. Saving them unblocks `legal-risk-compare`, the
+dashboard and `legal-risk-export-hf` for the BERT checkpoints. After Longformer,
+re-run the learned aggregator — 3.9 chunks per contract is a different learning
+problem from 37.9.
 
 ## Interpretability and delivery
 

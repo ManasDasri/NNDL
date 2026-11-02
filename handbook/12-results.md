@@ -1,4 +1,4 @@
-# 12 · Results so far
+# 12 · Results
 
 [← Deployment](11-deployment.md) · [Index](README.md) · [Next: Run it yourself →](13-run-it-yourself.md)
 
@@ -8,12 +8,16 @@ handbook.
 
 ## What is measured
 
-| Model | Window macro F1 | Document macro F1 | Status |
-|---|---:|---:|---|
-| **TextCNN** | **0.663** | **0.840** | trained, evaluated, published |
-| BERT | — | — | code complete, not run |
-| Legal-BERT | — | — | code complete, not run |
-| Longformer | — | — | code complete, not run |
+| Model | Window F1 | Window AP | Document F1 | Document AP | Status |
+|---|---:|---:|---:|---:|---|
+| TextCNN | 0.663 | — | 0.846 | 0.904 | trained, published |
+| **BERT** | **0.723** | 0.736 | **0.879** | 0.933 | trained (notebook 3) |
+| **Legal-BERT** | 0.718 | **0.769** | 0.875 | **0.936** | trained (notebook 3), one seed |
+| Longformer | — | — | — | — | code complete, not run |
+
+Document scores use noisy-OR pooling, with thresholds tuned on validation.
+Notebook 3 also retrained the CNN, which scored 0.656 window F1, within noise of
+the published 0.663.
 
 ### CNN, per class
 
@@ -28,20 +32,71 @@ Test split: 3,314 windows from 76 contracts never seen in training.
 | Termination for Convenience | 0.491 | 0.540 | **0.514** | 50 |
 | Non-Compete | 0.400 | 0.351 | **0.374** | 57 |
 
-## What has not been measured
+## Problem 1 — answered: legal pretraining shows no measurable advantage
 
-**The two experiments the project is built around have not been run.** BERT,
-Legal-BERT and Longformer need a GPU; [chapter 13](13-run-it-yourself.md) has a
-Colab link and the runs take about an hour.
+BERT and Legal-BERT differ only in what they were pretrained on, so this is the
+cleanest comparison in the project.
 
-Until then:
+| Label (window F1) | CNN | BERT | Legal-BERT | Legal − BERT |
+|---|---:|---:|---:|---:|
+| Termination for Convenience | 0.544 | 0.621 | 0.685 | **+0.064** |
+| Non-Compete | 0.317 | 0.560 | 0.509 | −0.051 |
+| Cap on Liability | 0.780 | 0.780 | 0.766 | −0.015 |
+| Audit Rights | 0.696 | 0.738 | 0.725 | −0.013 |
+| License Grant | 0.760 | 0.762 | 0.752 | −0.010 |
+| Insurance | 0.841 | 0.876 | 0.871 | −0.004 |
+| **Macro F1** | 0.656 | 0.723 | 0.718 | −0.005 |
 
-- **Problem 1 is unanswered.** We do not know whether legal pretraining helps.
-- **Problem 2 is unanswered.** We do not know whether longer context helps.
+(CNN column is the notebook 3 retrain, so all three come from the same session.)
 
-Everything around them is finished: the registry, the shared training loop, the
-evaluation, the comparison generator, and tests asserting the comparison is fair.
-What is missing is the compute.
+**On F1, a tie.** Legal-BERT is 0.005 below BERT. BERT trained a second time
+with a different seed scored 0.729, a gap of 0.006 from itself.
+
+**On ranking, a slight edge for Legal-BERT.** Window AP 0.769 against BERT's
+0.736 and 0.757 across its two seeds. At document level the two are tied, 0.936
+against 0.933.
+
+**The per-label prediction did not hold.** Legal pretraining was expected to help
+most on labels carried by legal vocabulary and least on Insurance. Insurance did
+gain nothing, but neither did Cap on Liability, the most jargon-heavy label. The
+only clear gain is Termination for Convenience, whose AP rose from 0.573 to
+0.711.
+
+How much a single run can be trusted per label, from BERT's two seeds:
+
+| Label | Seed 42 | Seed 1 | Swing |
+|---|---:|---:|---:|
+| Non-Compete | 0.560 | 0.468 | 0.092 |
+| License Grant | 0.762 | 0.821 | 0.059 |
+| Audit Rights | 0.738 | 0.772 | 0.034 |
+| Insurance | 0.876 | 0.904 | 0.028 |
+| Termination for Convenience | 0.621 | 0.631 | 0.010 |
+| Cap on Liability | 0.780 | 0.780 | 0.000 |
+
+Rare labels swing by up to 0.09 between runs of the *same* model, so Legal-BERT's
+−0.051 on Non-Compete is noise. Its +0.064 on Termination for Convenience exceeds
+that label's own swing, which makes it the one per-label result worth re-checking.
+
+> **Conclusion.** With 358 training contracts, fine-tuning a general-English
+> model closes the gap that legal pretraining would otherwise fill. Legal-BERT
+> matches BERT on F1, ranks marginally better, and does not show the predicted
+> vocabulary-specific gains.
+
+**Still owed:** Legal-BERT has one seed and BERT two; the seed loop in notebook 3
+was cut short. Two or three Legal-BERT seeds would settle whether the AP edge and
+the Termination for Convenience gain are real.
+
+## Pretrained models beat the CNN — clearly
+
+BERT is +0.07 window F1 and +0.03 document F1 above the CNN, more than twice the
+noise floor. The largest gain is on the rarest label: **Non-Compete, 0.317 →
+0.560.**
+
+## Problem 2 — not yet measured
+
+Longformer needs notebook 4. Until it runs we do not know whether a 2,600-word
+window beats a 300-word one, or whether noisy-OR gains more at ~4 windows per
+contract than at ~38.
 
 ## What the CNN results already tell us
 
@@ -58,10 +113,15 @@ Rank the labels by frequency and by F1 and you get nearly the same order:
 | Termination for Convenience | 1.51% | 0.514 |
 | Non-Compete | 1.50% | 0.374 |
 
-That suggests the bottleneck is **data volume**, not architecture — which in
-turn predicts that a bigger model may not help much on Non-Compete, because the
-problem is 301 positive windows rather than model capacity. That is a testable
-prediction and the transformer runs will check it.
+That suggested the bottleneck was **data volume**, not architecture, and
+predicted that a bigger model would not help much on Non-Compete.
+
+**The transformer runs refuted that.** BERT lifted Non-Compete from 0.317 to
+0.560, the largest gain on any label. The bottleneck was not the 301 positive
+windows themselves but how much a model had to learn from them: a pretrained
+model arrives already knowing English, so it needs fewer examples to recognise
+the clause. Rarity still predicts difficulty, since Non-Compete is BERT's weakest
+label too, but the gap narrowed.
 
 ### Insurance is the informative exception
 
@@ -72,9 +132,10 @@ insured", "certificate of insurance" — these phrases appear almost nowhere els
 Compare Non-Compete, whose language ("shall not engage", "restricted
 activities") overlaps heavily with ordinary contractual obligations.
 
-**Signal clarity matters as much as frequency.** This also sets up a prediction
-for Problem 1: Legal-BERT should help *least* on Insurance, because ordinary
-English already carries that signal.
+**Signal clarity matters as much as frequency.** It also set up a prediction
+for Problem 1: Legal-BERT should help *least* on Insurance. It did gain nothing
+there (−0.004), but it gained nothing almost everywhere else too, so the
+prediction is not confirmed in any meaningful sense.
 
 ### The model confuses "liability" with "liability"
 
@@ -86,11 +147,12 @@ language like "in no event shall".
 This is a specific, fixable weakness, found by interpretability rather than
 guesswork.
 
-### Pooling to document level is worth 0.11
+### Pooling to document level is worth 0.15–0.18
 
-0.663 at window level, 0.773–0.840 at document level depending on thresholds.
-The existential question — *does this contract contain the clause anywhere* — is
-genuinely easier than localising every instance, and max-pooling exploits that.
+CNN 0.663 → 0.846, BERT 0.723 → 0.879, Legal-BERT 0.718 → 0.875. The
+existential question — *does this contract contain the clause anywhere* — is
+genuinely easier than localising every instance, and noisy-OR pooling exploits
+that on transformer predictions as well as on the CNN's.
 
 ## The caveat that governs every number here
 
@@ -99,21 +161,18 @@ genuinely easier than localising every instance, and max-pooling exploits that.
 Floating-point non-determinism on GPU. So a difference smaller than about
 **±0.03 macro F1 is not evidence of anything.**
 
-This matters most for the experiment we have not run. If Legal-BERT beats BERT
-by 0.02, the honest response is:
+This was written down **before** the transformer results existed, with the
+rule that a Legal-BERT win of 0.02 would be reported as within variance rather
+than as a finding. The real gap came out at −0.005, so the rule was not needed
+to deflate a claimed win; it is why the result above is called a tie rather than
+a loss.
 
-> *"Within run-to-run variance. We ran both across N seeds; the spread was X."*
+## What is left
 
-not a claimed win. We are writing this down **before** there is a number,
-deliberately — it is far easier to agree what counts as a finding when nobody is
-attached to the outcome yet.
-
-## What to do when the runs finish
-
-1. Paste the comparison into `docs/results.md` — or better, regenerate it with `legal-risk-compare`, which builds it from the run directories so nothing is transcribed.
-2. Re-export the dashboard; it picks up the new models automatically.
-3. Push the models to the Hub with `legal-risk-export-hf`.
-4. Write the Problem 1 and Problem 2 conclusions — **including the possibility that both are null results**, which chapter 4 argues are genuine findings.
+1. **Save notebook 3's `outputs/` folder.** These numbers were read from the notebook's printed output; the run directories never left Colab, so the dashboard and the Hub models cannot be updated yet.
+2. Run two or three more Legal-BERT seeds.
+3. Run notebook 4 (Longformer) for Problem 2.
+4. Then regenerate the comparison with `legal-risk-compare`, re-export the dashboard, and push the models with `legal-risk-export-hf`.
 
 ---
 

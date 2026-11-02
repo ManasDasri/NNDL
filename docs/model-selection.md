@@ -31,6 +31,12 @@ shall" — and should be smallest for labels signalled by ordinary English such
 as Insurance. A uniform improvement across all six labels would be evidence
 that something other than domain knowledge is responsible.
 
+**Result.** Legal-BERT matched BERT (window F1 0.718 against 0.723, a gap inside
+BERT's own seed-to-seed spread) and did not show the concentration predicted
+above: Cap on Liability gained nothing, and the only clear gain was Termination
+for Convenience. Legal-BERT did rank slightly better on AP, which more seeds
+need to confirm. See [handbook chapter 12](../handbook/12-results.md).
+
 The CNN baseline is what makes this measurable. A pretrained model that cannot
 beat convolutions over embeddings learned from 358 contracts is not earning
 its 110M parameters, and the CNN's per-class results give each comparison a
