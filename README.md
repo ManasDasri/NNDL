@@ -217,13 +217,4 @@ flagged Cap on Liability, the model returns the same `product liability insuranc
 phrases it uses for Insurance, meaning it keys on the shared word "liability"
 rather than on capping language.
 
-## Team deliverables
-
-| Owner | Deliverable | Where |
-|---|---|---|
-| A — data | Cleaned, chunked dataset + exploration | `cuad.py`, `chunking.py`, `splits.py`, notebook 1 |
-| B — embeddings | BERT vs Legal-BERT + justification | `pretrained.py`, `docs/model-selection.md`, notebook 3 |
-| C — long documents | Longformer + pooling | `pretrained.py`, `pooling.py`, notebook 4 |
-| D — evaluation | Metrics, interpretability, demo, report | `metrics.py`, `attribution.py`, `demo.py`, notebook 5 |
-
 License: [MIT](./LICENSE)
