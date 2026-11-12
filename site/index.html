@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clause Risk Review</title>
+<style>
+  body { background: #f5f0e1; color: #2b2620; font-family: Georgia, "Times New Roman", serif;
+         font-size: 18px; line-height: 1.6; max-width: 760px; margin: 0 auto; padding: 32px 18px 64px; }
+  h1 { font-size: 2em; line-height: 1.2; margin-bottom: 0.2em; }
+  h2 { margin-top: 2em; border-bottom: 1px solid #c9bfa5; padding-bottom: 4px; }
+  h3 { margin-top: 1.6em; }
+  .scroll { overflow-x: auto; }
+  table { border-collapse: collapse; margin: 1em 0; font-size: 0.92em; }
+  th, td { border: 1px solid #c9bfa5; padding: 6px 12px; text-align: left; white-space: nowrap; }
+  th { background: #ebe3cd; }
+  td.n, th.n { text-align: right; }
+  code { background: #ebe3cd; padding: 1px 5px; }
+  .small { font-size: 0.88em; color: #5c5346; }
+  a { color: #7a3b12; }
+</style>
+</head>
+<body>
+
+<h1>Clause Risk Review</h1>
+<p class="small">A neural network course project &middot; multi-label classification of contract clauses on CUAD v1</p>
+
+<p>Commercial contracts are long, and a handful of clauses carry most of the risk. This project
+trains models to read a contract and flag which of six risk-relevant clause types it contains:</p>
+<ul>
+  <li><b>Cap on Liability</b> &ndash; a limit on how much one party can be made to pay</li>
+  <li><b>Non-Compete</b> &ndash; a restriction on competing with the other party</li>
+  <li><b>License Grant</b> &ndash; a right to use intellectual property</li>
+  <li><b>Audit Rights</b> &ndash; a right to inspect the other party's records</li>
+  <li><b>Termination for Convenience</b> &ndash; a right to end the contract without cause</li>
+  <li><b>Insurance</b> &ndash; a requirement to hold insurance</li>
+</ul>
+<p>A contract can contain several of these at once, so the model makes six independent yes/no
+decisions rather than choosing one label.</p>
+
+<h2>What the model does</h2>
+<ol>
+  <li><b>Reads the data.</b> CUAD v1 is 510 real contracts in which lawyers marked where each
+      clause appears. 358 contracts are used for training, 76 for tuning, and 76 are held back
+      for the final test.</li>
+  <li><b>Cuts each contract into windows.</b> The median contract is 5,039 words, far more than a
+      model can read at once, so each contract is cut into overlapping windows of 300 words
+      (2,600 for Longformer).</li>
+  <li><b>Labels each window.</b> A window is marked with a clause type only if it actually
+      overlaps a clause the lawyers marked.</li>
+  <li><b>Trains a classifier.</b> For every window, the model outputs six probabilities, one per
+      clause type. 85% of windows contain no clause at all, so mistakes on real clauses are
+      weighted more heavily during training.</li>
+  <li><b>Picks a cutoff per clause type.</b> Each clause type gets its own yes/no threshold,
+      chosen on the tuning contracts and never on the test contracts.</li>
+  <li><b>Combines windows into one answer per contract.</b> Every window counts as a separate
+      piece of evidence, using a rule called noisy-OR (explained below).</li>
+</ol>
+
+<h2>The models</h2>
+<div class="scroll">
+<table>
+  <tr><th>Model</th><th>What it is</th><th class="n">Size</th><th class="n">Reads at once</th></tr>
+  <tr><td>TextCNN</td><td>A small convolutional network, trained from scratch. The baseline.</td><td class="n">~4M</td><td class="n">300 words</td></tr>
+  <tr><td>BERT</td><td>Pretrained on general English</td><td class="n">110M</td><td class="n">300 words</td></tr>
+  <tr><td>Legal-BERT</td><td>Same design as BERT, pretrained on legal text</td><td class="n">110M</td><td class="n">300 words</td></tr>
+  <tr><td>Longformer</td><td>Pretrained, built to read long text</td><td class="n">149M</td><td class="n">2,600 words</td></tr>
+</table>
+</div>
+<p>The models were chosen to answer two questions. BERT and Legal-BERT differ only in what they
+were pretrained on. BERT and Longformer differ mainly in how much text they read at once.</p>
+
+<h2>Results</h2>
+<p>All scores are on the 76 test contracts, which no model saw during training or tuning.
+<b>F1</b> balances missed clauses against false alarms. <b>AP</b> (average precision) measures how
+well the model ranks real clauses above false ones. Both run from 0 to 1, higher is better.</p>
+<div class="scroll">
+<table>
+  <tr><th>Model</th><th class="n">Contract F1</th><th class="n">Contract AP</th><th class="n">Window F1</th></tr>
+  <tr><td>TextCNN</td><td class="n">0.846</td><td class="n">0.904</td><td class="n">0.663</td></tr>
+  <tr><td><b>BERT</b></td><td class="n"><b>0.879</b></td><td class="n">0.933</td><td class="n">0.723</td></tr>
+  <tr><td><b>Legal-BERT</b></td><td class="n">0.875</td><td class="n"><b>0.936</b></td><td class="n">0.718</td></tr>
+  <tr><td>Longformer</td><td class="n">0.821</td><td class="n">0.868</td><td class="n">0.715*</td></tr>
+</table>
+</div>
+<p class="small"><b>Contract</b> scores ask whether the clause was found anywhere in the contract.
+<b>Window</b> scores ask whether it was spotted in a single window. *Longformer's windows are nine
+times larger, so its window score is not comparable with the others. Training the same model twice
+changes F1 by about &plusmn;0.03, so smaller differences are not meaningful.</p>
+
+<h3>Question 1: does pretraining on legal text help?</h3>
+<p><b>No measurable advantage.</b> Legal-BERT scored 0.005 below BERT on window F1. For scale, BERT
+trained twice with different random seeds differed from itself by 0.006. Legal-BERT ranked
+slightly better (window AP 0.769 against 0.736), and the two tie at contract level. Legal-BERT was
+trained once, so its small ranking edge is not yet confirmed.</p>
+<div class="scroll">
+<table>
+  <tr><th>Clause type (window F1)</th><th class="n">TextCNN</th><th class="n">BERT</th><th class="n">Legal-BERT</th><th class="n">Legal &minus; BERT</th></tr>
+  <tr><td>Termination for Convenience</td><td class="n">0.544</td><td class="n">0.621</td><td class="n">0.685</td><td class="n">+0.064</td></tr>
+  <tr><td>Insurance</td><td class="n">0.841</td><td class="n">0.876</td><td class="n">0.871</td><td class="n">&minus;0.004</td></tr>
+  <tr><td>License Grant</td><td class="n">0.760</td><td class="n">0.762</td><td class="n">0.752</td><td class="n">&minus;0.010</td></tr>
+  <tr><td>Audit Rights</td><td class="n">0.696</td><td class="n">0.738</td><td class="n">0.725</td><td class="n">&minus;0.013</td></tr>
+  <tr><td>Cap on Liability</td><td class="n">0.780</td><td class="n">0.780</td><td class="n">0.766</td><td class="n">&minus;0.015</td></tr>
+  <tr><td>Non-Compete</td><td class="n">0.317</td><td class="n">0.560</td><td class="n">0.509</td><td class="n">&minus;0.051</td></tr>
+</table>
+</div>
+<p class="small">TextCNN column is from the same training session as the two BERT models (0.656 overall).</p>
+<p>We expected legal pretraining to help most on clause types full of legal jargon. That did not
+happen: Cap on Liability, the most jargon-heavy, gained nothing. The only clear gain was
+Termination for Convenience. Both BERT models clearly beat the CNN, most of all on the rarest
+clause type, Non-Compete (0.317 to 0.560).</p>
+
+<h3>Question 2: does reading more of the contract at once help?</h3>
+<p><b>No. It scored lower.</b> Longformer reads 2,600 words per window against BERT's 300, yet it
+finished 0.058 contract F1 below BERT, about twice the noise level, and below the CNN as well.</p>
+<p>Two likely reasons. These clauses can usually be recognised from their own sentence, so extra
+surrounding text adds little. And bigger windows mean fewer of them: 1,380 training windows
+against BERT's 13,829.</p>
+<p>Because of that, Longformer needed ten passes over the data where BERT needed three. Its
+validation F1 after each pass:</p>
+<div class="scroll">
+<table>
+  <tr><th>Pass</th><th class="n">1</th><th class="n">2</th><th class="n">3</th><th class="n">4</th><th class="n">5</th><th class="n">6</th><th class="n">7</th><th class="n">8</th><th class="n">9</th><th class="n">10</th></tr>
+  <tr><td>Validation F1</td><td class="n">0.218</td><td class="n">0.401</td><td class="n">0.500</td><td class="n">0.476</td><td class="n">0.608</td><td class="n">0.605</td><td class="n">0.646</td><td class="n">0.659</td><td class="n">0.663</td><td class="n">0.689</td></tr>
+</table>
+</div>
+<p class="small">Its best score was on the last pass, so it had not fully levelled off, and it was
+trained once. Its improvement had slowed to 0.01&ndash;0.03 per pass.</p>
+
+<h2>Combining windows: noisy-OR</h2>
+<p>Each window gets its own score, but the question is about the whole contract. The first version
+of this project kept only the highest-scoring window. That throws evidence away: a contract with
+two windows at 0.80 and 0.79 got the same score as one with windows at 0.80 and 0.02.</p>
+<p>Noisy-OR treats every window as a separate witness. The clause is missing only if every
+witness is wrong:</p>
+<p><code>P(clause) = 1 &minus; (1 &minus; p1) &times; (1 &minus; p2) &times; &hellip;</code></p>
+<div class="scroll">
+<table>
+  <tr><th>Window scores</th><th class="n">Highest window</th><th class="n">Noisy-OR</th></tr>
+  <tr><td>0.80 and 0.79</td><td class="n">0.800</td><td class="n">0.958</td></tr>
+  <tr><td>0.80 and 0.02</td><td class="n">0.800</td><td class="n">0.804</td></tr>
+</table>
+</div>
+<p>Measured on the CNN's predictions, noisy-OR scored 0.846 F1 and 0.904 AP against 0.840 and 0.899
+for the highest-window rule. That difference is within the noise, so it is not claimed as a win.
+Noisy-OR is used because it counts all the evidence and was never worse. Simply averaging the
+windows was far worse, at 0.511 F1.</p>
+
+<h2>Limits</h2>
+<ul>
+  <li>Trained on 358 contracts. The rarest clause types are the weakest.</li>
+  <li>Legal-BERT and Longformer were each trained once; BERT twice.</li>
+  <li>CUAD is US commercial contracts. Other kinds of contract are untested.</li>
+  <li>This is a research project and not legal advice.</li>
+</ul>
+
+<p class="small">Code, tests and the full write-up:
+<a href="https://github.com/ManasDasri/NNDL">github.com/ManasDasri/NNDL</a> &middot;
+detailed results in <a href="https://github.com/ManasDasri/NNDL/blob/main/handbook/12-results.md">handbook chapter 12</a> &middot;
+CNN model on <a href="https://huggingface.co/KenX049/cuad-clause-risk-cnn">Hugging Face</a></p>
+
+</body>
+</html>
