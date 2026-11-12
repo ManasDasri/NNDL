@@ -9,7 +9,7 @@ average precision is reported alongside because it is threshold-free.
 from __future__ import annotations
 
 import numpy as np
-from sklearn.metrics import average_precision_score, precision_recall_fscore_support
+from sklearn.metrics import average_precision_score, classification_report, precision_recall_fscore_support
 
 from .labels import LABEL_NAMES
 
@@ -62,6 +62,20 @@ def compute_metrics(
         "macro_average_precision": float(np.mean(scored)) if scored else None,
         "per_class": per_class,
     }
+
+
+def report(y_true: np.ndarray, y_prob: np.ndarray, thresholds: np.ndarray | float = 0.5) -> str:
+    """scikit-learn's classification report at the given per-label thresholds.
+
+    Per-class precision, recall, F1 and support, then micro, macro, weighted and
+    samples averages. Samples average is the multi-label one: F1 per window (or
+    contract) across its six labels, averaged over windows.
+    """
+    threshold_vector = np.broadcast_to(np.asarray(thresholds, dtype=float), (y_true.shape[1],))
+    y_pred = (y_prob >= threshold_vector).astype(int)
+    return classification_report(
+        y_true.astype(int), y_pred, target_names=list(LABEL_NAMES), digits=3, zero_division=0
+    )
 
 
 def tune_thresholds(

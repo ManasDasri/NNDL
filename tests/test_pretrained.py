@@ -186,6 +186,25 @@ def test_pretrained_model_trains_through_the_shared_loop() -> None:
     assert len(result.thresholds) == NUM_LABELS
 
 
+
+def test_tokenizer_never_sees_layout_whitespace() -> None:
+    """Runs of spaces cost Longformer one token each; they must be collapsed first."""
+    from legal_risk_classifier.chunking import Chunk
+    from legal_risk_classifier.datasets import TokenizedChunkDataset, collapse_whitespace
+
+    assert collapse_whitespace("Insurance      shall\n\n\tbe   maintained ") == "Insurance shall be maintained"
+
+    seen = []
+
+    def tokenizer(texts, **_):
+        seen.extend(texts)
+        n = len(texts)
+        return {"input_ids": torch.zeros((n, 4), dtype=torch.long), "attention_mask": torch.ones((n, 4), dtype=torch.long)}
+
+    chunk = Chunk("doc", 0, 0, 30, "Insurance      shall\n\n  apply", ("Insurance",))
+    TokenizedChunkDataset([chunk], tokenizer, max_length=4)
+    assert seen == ["Insurance shall apply"]
+
 if __name__ == "__main__":
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
     for test in tests:

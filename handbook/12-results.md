@@ -96,6 +96,11 @@ noise floor. The largest gain is on the rarest label: **Non-Compete, 0.317 →
 
 ## Problem 2 — answered: longer context did not help
 
+> **Provisional.** This Longformer run predates two fixes found afterwards: its
+> tokenizer was spending tokens on layout whitespace, which cut off the tail of
+> 20% of its windows, and the last partial batch of each epoch was not trained.
+> See [docs/weak-points.md](../docs/weak-points.md). Notebook 4 reruns it.
+
 BERT reads 300-word windows, Longformer 2,600-word ones. Only the contract-level
 scores compare fairly: Longformer's test set is 326 windows against BERT's 3,314,
 and a window nine times larger is far likelier to contain a clause, so its window

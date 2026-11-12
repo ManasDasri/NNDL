@@ -22,6 +22,7 @@ from legal_risk_classifier.labels import LABEL_NAMES, NUM_LABELS  # noqa: E402
 from legal_risk_classifier.metrics import (  # noqa: E402
     compute_metrics,
     positive_weights,
+    report,
     tune_thresholds,
 )
 from legal_risk_classifier.textcnn import TextCNN  # noqa: E402
@@ -186,6 +187,43 @@ def test_training_writes_a_resumable_artifact() -> None:
         assert (out / "model.pt").exists() and (out / "training.json").exists()
         reloaded = TextCNN(vocab_size=len(vocab), num_labels=NUM_LABELS, embedding_dim=8, num_filters=4)
         reloaded.load_state_dict(torch.load(out / "model.pt"))
+
+
+def test_a_partial_accumulation_group_still_trains() -> None:
+    """The epoch's last batches must step even when they do not fill a group.
+
+    Five batches with accumulation 4 leave one batch over. Before the fix its
+    gradients were zeroed unused, so an epoch took one optimizer step, not two.
+    """
+    vocab = Vocabulary.build(["alpha beta"], min_freq=1)
+    loader = DataLoader(
+        WordChunkDataset([_chunk("alpha beta", ("Insurance",))] * 5, vocab, max_tokens=8),
+        batch_size=1,
+    )
+    model = TextCNN(vocab_size=len(vocab), num_labels=NUM_LABELS, embedding_dim=8, num_filters=4)
+    steps = []
+    original_step = torch.optim.AdamW.step
+
+    def counting_step(self, *args, **kwargs):
+        steps.append(1)
+        return original_step(self, *args, **kwargs)
+
+    torch.optim.AdamW.step = counting_step
+    try:
+        train(model, loader, loader, TrainingConfig(epochs=1, grad_accumulation=4, device="cpu"))
+    finally:
+        torch.optim.AdamW.step = original_step
+    assert len(steps) == 2, f"expected a full group and a partial one to step, got {len(steps)}"
+
+
+def test_classification_report_covers_every_label_and_average() -> None:
+    y_true = np.zeros((6, NUM_LABELS)); y_true[np.arange(6), np.arange(6)] = 1
+    text = report(y_true, y_true * 0.9, thresholds=0.5)
+    for name in LABEL_NAMES:
+        assert name in text
+    for average in ("micro avg", "macro avg", "weighted avg", "samples avg"):
+        assert average in text
+    assert "1.000" in text, "a perfect prediction reports perfect scores"
 
 
 if __name__ == "__main__":
