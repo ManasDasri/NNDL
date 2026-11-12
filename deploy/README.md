@@ -16,6 +16,17 @@ python -m legal_risk_classifier.export_dashboard \
 Rerun it after any training run; the page is generated, so the published
 dashboard picks up the new numbers with nothing edited by hand.
 
+### The plain results page
+
+`site/index.html` is a single hand-written HTML file, no scripts and no build
+step, covering what the project does and the results for all four models. It is
+what the Space serves while the transformer run directories are unavailable to
+the generated dashboard. Publish it with:
+
+```bash
+hf upload <your-username>/clause-risk-review site/index.html index.html --repo-type space
+```
+
 ### Why not GitHub Pages
 
 GitHub Pages was tried first and is the wrong tool here. A custom domain
