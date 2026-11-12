@@ -22,8 +22,8 @@ exposes, so nothing in them can drift from what the code actually does.
 > run past that on CPU.
 
 **Notebook 3** answers Problem 1 and has been run; see
-[chapter 12](12-results.md). **Notebook 4** answers Problem 2 and is the one
-still outstanding. Save the `outputs/` folder before the Colab session ends
+[chapter 12](12-results.md). **Notebook 4** answers Problem 2 and has been
+run too. Save the `outputs/` folder before the Colab session ends
 (`!zip -r outputs.zip outputs`), or the run directories are lost.
 
 ## Local setup

@@ -65,6 +65,11 @@ finding about the task, not a failed experiment — and it comes with a cost
 argument attached, since Longformer is 35% larger and materially slower to
 train.
 
+**Result.** The answer was no. Longformer reached 0.821 document F1 against
+BERT's 0.879, after ten epochs to BERT's three. Larger windows also mean ten
+times fewer training windows, which this comparison cannot separate from the
+effect of context itself. See [handbook chapter 12](../handbook/12-results.md).
+
 ## Why Longformer is the default
 
 `legal-risk-train-transformer` trains Longformer unless told otherwise. Not

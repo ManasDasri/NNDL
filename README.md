@@ -35,7 +35,7 @@ Held-out test split: 76 contracts, 3,314 windows, never seen in training.
 | TextCNN | 0.663 | — | 0.846 | 0.904 | trained, published |
 | **BERT** | **0.723** | 0.736 | **0.879** | 0.933 | trained |
 | **Legal-BERT** | 0.718 | **0.769** | 0.875 | **0.936** | trained, one seed |
-| Longformer | — | — | — | — | awaiting a GPU run |
+| Longformer | 0.715† | 0.733† | 0.821 | 0.868 | trained, one seed |
 
 Document scores use noisy-OR pooling over windows, the default since it beat max
 on both metrics — see [docs/pooling.md](./docs/pooling.md).
@@ -92,6 +92,18 @@ handle long documents".
 
 A null result is a real finding. Most of these clauses are locally signalled:
 *"shall maintain insurance"* is recognisable from its own sentence.
+
+**Result: longer context did not help.** At contract level Longformer scores
+0.821 F1 / 0.868 AP against BERT's 0.879 / 0.933, a gap about twice the noise
+floor, and it does not clear the CNN (0.846 / 0.904). It needed ten epochs to get
+there, because 2,600-word windows leave 1,380 training windows against BERT's
+13,829; a first three-epoch run was undertrained and is not the reported number.
+Early stopping never fired, so Longformer had not fully plateaued, though its
+climb had slowed to 0.01–0.03 per epoch. Full analysis in
+[handbook chapter 12](./handbook/12-results.md).
+
+†Longformer's window scores are on 2,600-word windows, not comparable with the
+300-word rows above them.
 
 ## Dataset challenges
 
