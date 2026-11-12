@@ -114,10 +114,13 @@ Test split: 76 contracts, 3,314 windows, never trained on.
 | TextCNN | 0.663 | — | 0.846 | 0.904 |
 | BERT | 0.723 | 0.736 | 0.879 | 0.933 |
 | Legal-BERT | 0.718 | 0.769 | 0.875 | 0.936 |
-| Longformer | — | — | — | — |
+| Longformer | 0.715† | 0.733† | 0.821 | 0.868 |
 
 BERT and Legal-BERT come from notebook 3 on a Colab T4: 3 epochs, lr 2e-5,
-batch 16. A second BERT seed scored 0.729 window F1 / 0.757 AP.
+batch 16. A second BERT seed scored 0.729 window F1 / 0.757 AP. Longformer
+comes from notebook 4: 10 epochs, batch 1 with 16-step accumulation, gradient
+checkpointing. †Its window scores are on 2,600-word windows (326 test windows
+against 3,314) and are not comparable with the other rows.
 
 Per-label CNN thresholds, tuned on validation: Cap on Liability 0.78 ·
 Non-Compete 0.28 · License Grant 0.32 · Audit Rights 0.39 · Termination for
@@ -137,13 +140,22 @@ clear per-label gain is Termination for Convenience. Legal-BERT has one seed, so
 the AP edge is not yet claimable. Detail in
 [handbook chapter 12](../handbook/12-results.md).
 
-**Problem 2 is unanswered** until Longformer is trained (notebook 4).
+**Problem 2 is answered: longer context did not help.** Longformer scores 0.821
+document F1 against BERT's 0.879, about twice the noise floor, and below the CNN.
+Equal epochs would have been unfair, since 2,600-word windows leave 1,380
+training windows against 13,829, so it was trained for 10 epochs; a first
+3-epoch run (0.759) was undertrained and is not reported as the result. Early
+stopping never fired, so it had not fully plateaued, with one seed.
 
-Still owed: notebook 3's run directories never left Colab, so the numbers above
-are read from its printed output. Saving them unblocks `legal-risk-compare`, the
-dashboard and `legal-risk-export-hf` for the BERT checkpoints. After Longformer,
-re-run the learned aggregator — 3.9 chunks per contract is a different learning
-problem from 37.9.
+Longformer remains the CLI default because that was a product decision made
+before this result; on these numbers BERT is the better model, and the default
+is worth revisiting.
+
+Still owed: the run directories from notebooks 3 and 4 never left Colab, so the
+numbers above are read from printed output. Saving them unblocks
+`legal-risk-compare`, the dashboard, `legal-risk-export-hf`, and the two pooling
+checks that need Longformer's predictions: noisy-OR against max at ~4 windows,
+and the learned aggregator.
 
 ## Interpretability and delivery
 

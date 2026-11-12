@@ -172,10 +172,12 @@ within each group makes max-of-max identical to the global max, so the baseline
 is invariant by construction and the comparison is unfair to it. The remaining
 differences stayed inside the noise floor.
 
-This question is genuinely open until Longformer is trained. The expectation is
-that noisy_or's advantage grows as chunk count falls, because saturation is
-driven by chunk count and corroboration still works with three chunks — but
-that is a prediction, not a result.
+Longformer has since been trained. Noisy-OR lifted it from 0.715 window F1 to
+0.821 document F1, a gain of 0.106 against 0.156 for BERT at ~38 chunks. So the
+expectation that noisy_or matters more as chunk count falls is **not confirmed**:
+with four chunks there is simply less to combine. Whether noisy_or still beats
+max at four chunks is unmeasured, because that needs Longformer's chunk
+predictions and the run directory did not leave Colab.
 
 ## Reproducing
 

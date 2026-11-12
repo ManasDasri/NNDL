@@ -13,9 +13,11 @@ handbook.
 | TextCNN | 0.663 | — | 0.846 | 0.904 | trained, published |
 | **BERT** | **0.723** | 0.736 | **0.879** | 0.933 | trained (notebook 3) |
 | **Legal-BERT** | 0.718 | **0.769** | 0.875 | **0.936** | trained (notebook 3), one seed |
-| Longformer | — | — | — | — | code complete, not run |
+| Longformer | 0.715† | 0.733† | 0.821 | 0.868 | trained (notebook 4), one seed |
 
 Document scores use noisy-OR pooling, with thresholds tuned on validation.
+†Longformer's window scores are on 2,600-word windows and are not comparable
+with the 300-word rows; compare the document columns.
 Notebook 3 also retrained the CNN, which scored 0.656 window F1, within noise of
 the published 0.663.
 
@@ -92,11 +94,67 @@ BERT is +0.07 window F1 and +0.03 document F1 above the CNN, more than twice the
 noise floor. The largest gain is on the rarest label: **Non-Compete, 0.317 →
 0.560.**
 
-## Problem 2 — not yet measured
+## Problem 2 — answered: longer context did not help
 
-Longformer needs notebook 4. Until it runs we do not know whether a 2,600-word
-window beats a 300-word one, or whether noisy-OR gains more at ~4 windows per
-contract than at ~38.
+BERT reads 300-word windows, Longformer 2,600-word ones. Only the contract-level
+scores compare fairly: Longformer's test set is 326 windows against BERT's 3,314,
+and a window nine times larger is far likelier to contain a clause, so its window
+F1 measures a different task.
+
+| Model | Window | Windows per contract | Document F1 | Document AP |
+|---|---:|---:|---:|---:|
+| TextCNN | 300 words | ~38 | 0.846 | 0.904 |
+| **BERT** | 300 words | ~38 | **0.879** | **0.933** |
+| Longformer | 2,600 words | ~4 | 0.821 | 0.868 |
+
+Longformer finishes 0.058 F1 and 0.065 AP below BERT, about twice the ±0.03
+noise floor, and does not clear the CNN either. One seed, so the size of the gap
+is uncertain; its direction is not close.
+
+### The first run was not a fair test, and why
+
+Notebook 4 originally trained 3 epochs, like BERT. But a 2,600-word window
+yields 1,380 training windows against BERT's 13,829, so equal epochs meant 259
+optimizer updates against roughly 2,600. That run scored 0.759 document F1 with
+validation F1 still rising 0.1 per epoch. It measured undertraining, not context
+length, and was rerun with 10 epochs and early stopping (patience 2).
+
+| Epoch | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Val F1 | 0.218 | 0.401 | 0.500 | 0.476 | 0.608 | 0.605 | 0.646 | 0.659 | 0.663 | 0.689 |
+| Train loss | 1.18 | 1.08 | 0.89 | 0.71 | 0.58 | 0.45 | 0.36 | 0.27 | 0.22 | 0.18 |
+
+**The caveat that belongs with the result:** early stopping never fired. Epoch
+10 was the best epoch, so Longformer had not fully plateaued, and at 863 updates
+it still had a third of BERT's. The climb had slowed to about 0.01 to 0.03 per
+epoch with training loss already at 0.18, so the remaining headroom looks small
+next to a 0.058 gap, but that is an inference, not a measurement.
+
+### Where it won and lost, per label
+
+Longformer's window F1 by label: License Grant 0.901, Insurance 0.871, Audit
+Rights 0.833, Cap on Liability 0.783, Non-Compete 0.567, Termination for
+Convenience 0.333. Termination for Convenience is the label that sinks it; that
+clause is typically one short sentence, which a 2,600-word window dilutes.
+
+### What it cost
+
+149M parameters against 110M, ten epochs against three, batch size 1 with
+gradient checkpointing to fit a T4. More compute for a lower score.
+
+> **Conclusion.** On this task, with 358 training contracts, a 2,600-word window
+> did worse than a 300-word one. These clauses are locally signalled, so the
+> extra context adds little, while larger windows leave ten times fewer training
+> examples. Chapter 4 said a null result here would be a finding about the task;
+> this is that finding.
+
+### Noisy-OR at four windows per contract
+
+Pooling lifted Longformer from 0.715 (window) to 0.821 (contract), a gain of
+0.106 against 0.156 for BERT. The prediction that noisy-OR would matter *more*
+with fewer windows is **not confirmed**: with only ~4 windows there is less to
+combine. Comparing it against max on Longformer's own predictions needs the run
+directory, which did not leave Colab.
 
 ## What the CNN results already tell us
 
@@ -170,8 +228,8 @@ a loss.
 ## What is left
 
 1. **Save notebook 3's `outputs/` folder.** These numbers were read from the notebook's printed output; the run directories never left Colab, so the dashboard and the Hub models cannot be updated yet.
-2. Run two or three more Legal-BERT seeds.
-3. Run notebook 4 (Longformer) for Problem 2.
+2. Run two or three more Legal-BERT seeds, and a second Longformer seed.
+3. Save the `outputs/` folders from both notebooks.
 4. Then regenerate the comparison with `legal-risk-compare`, re-export the dashboard, and push the models with `legal-risk-export-hf`.
 
 ---
