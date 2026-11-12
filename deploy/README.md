@@ -27,19 +27,19 @@ the generated dashboard. Publish it with:
 hf upload <your-username>/clause-risk-review site/index.html index.html --repo-type space
 ```
 
-### Why not GitHub Pages
+### GitHub Pages, for the plain results page only
 
-GitHub Pages was tried first and is the wrong tool here. A custom domain
-attached to a user-level Pages site makes *every* project repository serve as a
-subpath of that domain, so enabling Pages on this repository published the
-project under a personal portfolio. There is no per-repository way to opt out of
-the domain while keeping Pages.
+`.github/workflows/pages.yml` publishes the `site/` folder on every push to main
+that touches it. Because the account's user-level Pages site carries a custom
+domain, the page is served under that domain at `/NNDL/`.
 
-A static Space avoids that entirely: its own URL, no relationship to any other
-site, free, and it uses the same account as the model and the demo.
+This reverses an earlier decision. Pages was first enabled from the repository
+root, which published the README under the personal portfolio domain, and it was
+switched off for that reason. It is back on deliberately, with two differences:
+the owner now wants the project on that domain, and the workflow publishes only
+`site/`, so nothing but the results page is exposed.
 
-If Pages was ever enabled on this repository, turn it off under
-Settings -> Pages -> Source: None. The REST API refuses to deactivate it.
+To take it down: Settings -> Pages -> Source: None.
 
 ## Demo — HuggingFace Spaces
 
