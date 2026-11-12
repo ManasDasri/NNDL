@@ -139,7 +139,11 @@ def train(
                 loss = criterion(logits.float(), targets) / config.grad_accumulation
             scaler.scale(loss).backward()
 
-            if step % config.grad_accumulation == 0:
+            # Step on a full group and on the epoch's last batch. Without the
+            # second condition a partial group's gradients were zeroed unused:
+            # with Longformer's accumulation of 16 over 1,380 windows, the last
+            # 4 windows of every epoch never trained the model.
+            if step % config.grad_accumulation == 0 or step == len(train_loader):
                 # Unscale before clipping, or the clip threshold is meaningless.
                 scaler.unscale_(optimizer)
                 nn.utils.clip_grad_norm_(model.parameters(), config.max_grad_norm)

@@ -20,7 +20,7 @@ from .chunking import chunk_documents
 from .cuad import load_documents
 from .datasets import TokenizedChunkDataset, WordChunkDataset
 from .labels import NUM_LABELS
-from .metrics import compute_metrics, tune_thresholds
+from .metrics import compute_metrics, report, tune_thresholds
 from .pooling import METHODS, POOLING_GRID, pool_to_documents
 from .splits import load_splits, select
 from .training import predict, resolve_device
@@ -178,11 +178,26 @@ def main() -> None:
     out = args.out or args.run_dir / f"evaluation_{args.split}.json"
     out.write_text(json.dumps(result, indent=2), encoding="utf-8")
 
+    window_words = chunking["window"]
+    report_text = (
+        f"{summary['model']} · {args.split} split\n\n"
+        f"Window level ({len(chunks)} windows of {window_words} words, validation-tuned thresholds)\n\n"
+        f"{report(y_true, y_prob, thresholds)}"
+        "Samples avg scores each window over its own labels, so the many windows with no\n"
+        "clause count as zero here. Read the per-class rows and the macro average instead.\n\n"
+        f"Contract level ({len(doc_ids)} contracts, {pooling} pooling, validation-tuned thresholds)\n\n"
+        f"{report(doc_true, doc_prob, doc_thresholds)}"
+    )
+    report_path = out.with_name(f"classification_report_{args.split}.txt")
+    report_path.write_text(report_text, encoding="utf-8")
+
     print(f"{summary['model']}  {args.split}  ({len(chunks)} chunks, {len(doc_ids)} documents)")
     print(f"  chunk    macro F1 {chunk_metrics['macro_f1']:.3f}  AP {chunk_metrics['macro_average_precision']:.3f}")
     print(f"  document macro F1 {document_metrics['macro_f1']:.3f}  AP {document_metrics['macro_average_precision']:.3f}"
           f"  [{pooling} {pooling_params or ''}]")
     print(f"  -> {out}")
+    print(f"  -> {report_path}\n")
+    print(report_text)
 
 
 if __name__ == "__main__":

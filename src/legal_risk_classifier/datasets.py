@@ -52,6 +52,20 @@ class WordChunkDataset(Dataset):
         }
 
 
+def collapse_whitespace(text: str) -> str:
+    """Runs of spaces, tabs and newlines to one space.
+
+    CUAD contracts are OCR'd and keep their page layout as whitespace. BERT's
+    tokenizer splits on whitespace and discards it, but Longformer's byte-level
+    BPE (inherited from RoBERTa) encodes runs of spaces as tokens. Measured on
+    the training split, 16.6% of Longformer's tokens were whitespace, and they
+    pushed 19.8% of its 2,600-word windows past the 4,096-token limit, where
+    the tokenizer silently cut the tail off. Collapsed, 1.5% exceed it. For
+    BERT and Legal-BERT the token sequence is unchanged.
+    """
+    return " ".join(text.split())
+
+
 class TokenizedChunkDataset(Dataset):
     """Chunks tokenized by a Hugging Face tokenizer, for the transformers.
 
@@ -67,7 +81,7 @@ class TokenizedChunkDataset(Dataset):
 
         encoded_batches: list[dict[str, torch.Tensor]] = []
         for start in range(0, len(chunks), batch):
-            window = [chunk.text for chunk in chunks[start : start + batch]]
+            window = [collapse_whitespace(chunk.text) for chunk in chunks[start : start + batch]]
             encoded_batches.append(
                 tokenizer(
                     window,
