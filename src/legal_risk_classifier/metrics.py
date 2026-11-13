@@ -1,9 +1,10 @@
 """Metrics for a heavily imbalanced multi-label problem.
 
-Accuracy is excluded deliberately: with 85% of chunks unlabelled and per-label
-positive rates near 2%, a model predicting all-negative scores above 95% on
-every label. Per-class precision, recall and F1 are the honest view, and
-average precision is reported alongside because it is threshold-free.
+Accuracy is reported but never relied on: with 85% of chunks unlabelled and
+per-label positive rates near 2%, a model predicting all-negative scores above
+95% on every label. Per-class precision, recall and F1 are the honest view, and
+average precision is reported alongside because it is threshold-free. The
+confusion-matrix counts are kept so any of these can be recomputed.
 """
 
 from __future__ import annotations
@@ -33,6 +34,11 @@ def compute_metrics(
     per_class = []
     for i, name in enumerate(LABEL_NAMES):
         column_true, column_prob = y_true[:, i], y_prob[:, i]
+        positive, predicted_positive = column_true == 1, y_pred[:, i] == 1
+        tp = int(np.sum(positive & predicted_positive))
+        fp = int(np.sum(~positive & predicted_positive))
+        fn = int(np.sum(positive & ~predicted_positive))
+        tn = int(np.sum(~positive & ~predicted_positive))
         per_class.append(
             {
                 "label": name,
@@ -47,6 +53,8 @@ def compute_metrics(
                 "support": int(support[i]),
                 "predicted": int(y_pred[:, i].sum()),
                 "threshold": float(threshold_vector[i]),
+                "tp": tp, "fp": fp, "fn": fn, "tn": tn,
+                "accuracy": (tp + tn) / max(tp + fp + fn + tn, 1),
             }
         )
 
@@ -60,6 +68,10 @@ def compute_metrics(
         "micro_recall": float(micro[1]),
         "micro_f1": float(micro[2]),
         "macro_average_precision": float(np.mean(scored)) if scored else None,
+        # Share of individual label decisions that are right, all six labels pooled.
+        "label_accuracy": float(np.mean(y_pred == y_true)),
+        # Share of windows (or contracts) with all six labels right at once.
+        "exact_match_accuracy": float(np.mean(np.all(y_pred == y_true, axis=1))),
         "per_class": per_class,
     }
 

@@ -226,6 +226,18 @@ def test_classification_report_covers_every_label_and_average() -> None:
     assert "1.000" in text, "a perfect prediction reports perfect scores"
 
 
+def test_confusion_counts_and_accuracy_add_up() -> None:
+    y_true = np.zeros((10, NUM_LABELS)); y_true[:3, 0] = 1
+    y_prob = np.zeros((10, NUM_LABELS)); y_prob[:2, 0] = 0.9; y_prob[5, 0] = 0.9
+    metrics = compute_metrics(y_true, y_prob, thresholds=0.5)
+    first = metrics["per_class"][0]
+    assert (first["tp"], first["fp"], first["fn"], first["tn"]) == (2, 1, 1, 6)
+    assert first["accuracy"] == 0.8
+    # 2 wrong decisions out of 60, and windows 2 and 5 are the only ones not fully right.
+    assert abs(metrics["label_accuracy"] - 58 / 60) < 1e-9
+    assert metrics["exact_match_accuracy"] == 0.8
+
+
 if __name__ == "__main__":
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
     for test in tests:

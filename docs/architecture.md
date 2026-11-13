@@ -173,18 +173,18 @@ personal portfolio domain.
 
 ## Tests
 
-90 checks across nine files, no framework — each runs as a script.
+95 checks across nine files, no framework — each runs as a script.
 
 ```text
 test_data_pipeline.py    12   stdlib only
 test_analysis.py          9   stdlib only
-test_model_layer.py      14   torch
-test_pretrained.py       11   torch, offline
+test_model_layer.py      17   torch
+test_pretrained.py       12   torch, offline
 test_pooling.py           7   torch
 test_pooling_rules.py     9   the seven rules and their failure modes
 test_learned_pooling.py  10   the aggregator and its padding contract
 test_interpretability.py 11   torch
-test_export_hf.py         7   no network
+test_export_hf.py         8   no network
 ```
 
 They carry the reasoning, so a decision cannot be quietly reversed: that a CUAD
