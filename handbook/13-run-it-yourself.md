@@ -17,9 +17,25 @@ exposes, so nothing in them can drift from what the code actually does.
 | [4 · Problem 2](https://colab.research.google.com/github/ManasDasri/NNDL/blob/main/notebooks/4_problem2_longformer.ipynb) | **BERT vs Longformer** | several hours, GPU |
 | [5 · Demo](https://colab.research.google.com/github/ManasDasri/NNDL/blob/main/notebooks/5_demo_and_interpretability.ipynb) | Browser demo and attribution | 10 min |
 
-> **Set the runtime first: Runtime → Change runtime type → T4 GPU.** Notebook 3
-> prints the GPU name in its second cell and tells you if it is missing. Do not
-> run past that on CPU.
+> **Set the runtime first: Runtime → Change runtime type → T4 GPU.** Notebooks 3
+> and 4 stop at their first cell with an error if there is no GPU. Before that
+> check existed, a CPU run carried on into training that would have taken many
+> hours, and every evaluation after it failed with `metrics.json` not found.
+
+Notebooks 2, 3 and 4 end with a cell that prints every run's classification
+report and draws, for each run, a confusion matrix per label (window and
+contract level) and precision, recall, F1 and accuracy by label, then a chart
+comparing all runs. The PNGs are saved in each run's folder. To redraw them for
+any evaluated run:
+
+```python
+from legal_risk_classifier.plots import plot_run, plot_comparison
+plot_run('outputs/bert')
+plot_comparison(['outputs/cnn', 'outputs/bert', 'outputs/legal_bert'])
+```
+
+Every notebook is safe to run twice in one session: setup clones once and pulls
+after that, instead of nesting a second copy of the repository inside the first.
 
 **Notebook 3** answers Problem 1 and has been run; see
 [chapter 12](12-results.md). **Notebook 4** answers Problem 2 and has been
@@ -93,14 +109,16 @@ exits without doing anything.
 ```bash
 python  tests/test_data_pipeline.py      # 12 · standard library only
 python  tests/test_analysis.py           #  9 · standard library only
-python  tests/test_model_layer.py        # 14 · needs torch
-python  tests/test_pretrained.py         # 11 · needs torch, offline
+python  tests/test_model_layer.py        # 17 · needs torch
+python  tests/test_pretrained.py         # 12 · needs torch, offline
 python  tests/test_pooling.py            #  7 · needs torch
+python  tests/test_pooling_rules.py      #  9 · needs numpy
+python  tests/test_learned_pooling.py    # 10 · needs scikit-learn
 python  tests/test_interpretability.py   # 11 · needs torch
-python  tests/test_export_hf.py          #  7 · needs torch, offline
+python  tests/test_export_hf.py          #  8 · needs torch, offline
 ```
 
-**71 checks, no framework.** Each file runs as a script and prints what passed.
+**95 checks, no framework.** Each file runs as a script and prints what passed.
 The first two need nothing installed at all.
 
 ## Useful flags

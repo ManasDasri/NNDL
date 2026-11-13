@@ -167,12 +167,12 @@ src/legal_risk_classifier/
   prepare.py                         CUAD spans and persisted splits
   train_cnn.py train_transformer.py  the two entry points
   pooling.py learned_pooling.py      seven rules plus the one that lost
-  evaluate.py compare.py             window and document scoring
+  evaluate.py compare.py plots.py    window and document scoring, and their plots
   attribution.py runtime.py demo.py  interpretability and the browser demo
   export_dashboard.py export_hf.py   results page and Hugging Face publishing
 notebooks/                           Colab runners
 docs/                                generated reports and the model justification
-tests/                               90 checks, no pytest required
+tests/                               95 checks, no pytest required
 ```
 
 ## Tests
@@ -180,13 +180,13 @@ tests/                               90 checks, no pytest required
 ```bash
 python  tests/test_data_pipeline.py      # 12 — standard library only
 python  tests/test_analysis.py           #  9 — standard library only
-python  tests/test_model_layer.py        # 14 — needs torch
-python  tests/test_pretrained.py         # 11 — needs torch, runs offline
+python  tests/test_model_layer.py        # 17 — needs torch
+python  tests/test_pretrained.py         # 12 — needs torch, runs offline
 python  tests/test_pooling.py            #  7 — needs torch
 python  tests/test_pooling_rules.py      #  9 — the seven rules, no torch
 python  tests/test_learned_pooling.py    # 10 — the aggregator's contract
 python  tests/test_interpretability.py   # 11 — needs torch
-python  tests/test_export_hf.py          #  7 — no network
+python  tests/test_export_hf.py          #  8 — no network
 ```
 
 No framework. Each file runs as a script and prints what passed.
