@@ -15,7 +15,7 @@ CUAD_v1.json
                   overlaps an annotated span by >= 50% of the shorter range
   training.py     one loop, every model: weighted BCE, AMP, early stopping
   evaluate.py     window metrics, then noisy-OR pooling to document metrics
-  compare.py / export_dashboard.py / demo.py / export_hf.py
+  compare.py / demo.py / export_web.py / export_hf.py
 ```
 
 Four properties hold across every model, and they are what make the comparisons
@@ -154,7 +154,7 @@ answered.
 
 Still owed: the run directories from notebooks 3 and 4 are still on Kaggle, so
 the numbers above are read from printed output. Downloading them unblocks
-`legal-risk-compare`, the dashboard, `legal-risk-export-hf`, and the two pooling
+`legal-risk-compare`, `legal-risk-export-hf`, and the two pooling
 checks that need Longformer's predictions: noisy-OR against max at ~4 windows,
 and the learned aggregator.
 
@@ -166,11 +166,11 @@ CNN returns the same `product liability insurance` phrases it uses for
 Insurance, so it keys on the shared word "liability" rather than on capping
 language.
 
-`demo.py` is the Gradio app, `export_dashboard.py` generates the static results
-page, `export_hf.py` pushes a checkpoint with `id2label` intact. The published
-model is `KenX049/cuad-clause-risk-cnn`; the dashboard and demo are Hugging Face
-Spaces, deliberately not GitHub Pages, so this project never appears on the
-personal portfolio domain.
+`demo.py` is the Gradio app, `export_web.py` writes the CNN for the browser
+demo in `site/demo/`, `export_hf.py` pushes a checkpoint with `id2label` intact.
+The published model is `KenX049/cuad-clause-risk-cnn`. The results page and the
+browser demo are served from `site/` by GitHub Pages and mirrored to a static
+Hugging Face Space.
 
 ## Tests
 

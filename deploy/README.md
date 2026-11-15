@@ -1,49 +1,27 @@
 # Deploying
 
-Two surfaces, deployed separately because they have different needs: the
-dashboard is a static file, the demo needs a Python process holding a model.
+Everything public is static: the results page and the browser demo live in
+`site/`, and the model is on the Hugging Face Hub. There is no server.
 
-## Dashboard — Hugging Face Space (static)
+## Results page and demo — GitHub Pages
 
-```bash
-pip install -e ".[hub,analysis]"
-hf auth login
-
-python -m legal_risk_classifier.export_dashboard \
-    --run_dir outputs/cnn --repo_id <your-username>/clause-risk-review --push
-```
-
-Rerun it after any training run; the page is generated, so the published
-dashboard picks up the new numbers with nothing edited by hand.
-
-### The plain results page
-
-`site/index.html` is a single hand-written HTML file, no scripts and no build
-step, covering what the project does and the results for all four models. It is
-what the Space serves while the transformer run directories are unavailable to
-the generated dashboard. Publish it with:
-
-```bash
-hf upload <your-username>/clause-risk-review site/index.html index.html --repo-type space
-```
-
-### GitHub Pages, for the plain results page only
+`site/index.html` is a single hand-written HTML file, no build step, covering
+what the project does and the results for all four models. `site/demo/` is the
+browser demo.
 
 `.github/workflows/pages.yml` publishes the `site/` folder on every push to main
 that touches it. Because the account's user-level Pages site carries a custom
-domain, the page is served under that domain at `/NNDL/`.
+domain, it is served at https://www.algorithmicbit.tech/NNDL/. Only `site/` is
+published, so the README and docs are not exposed. To take it down: Settings ->
+Pages -> Source: None.
 
-This reverses an earlier decision. Pages was first enabled from the repository
-root, which published the README under the personal portfolio domain, and it was
-switched off for that reason. It is back on deliberately, with two differences:
-the owner now wants the project on that domain, and the workflow publishes only
-`site/`, so nothing but the results page is exposed.
+The same folder is mirrored to a static Hugging Face Space:
 
-To take it down: Settings -> Pages -> Source: None.
+```bash
+hf upload <your-username>/clause-risk-review site . --repo-type space
+```
 
-## Demo — in the browser, on the results site
-
-Live at https://www.algorithmicbit.tech/NNDL/demo/, linked from the results page.
+## The demo runs in the browser
 
 The TextCNN runs in the visitor's browser, so there is no server to pay for,
 keep awake or restart. `site/demo/model.js` is a line-for-line port of the
@@ -56,19 +34,17 @@ legal-risk-evaluate --run_dir outputs/cnn --split test   # contract thresholds
 legal-risk-export-web --run_dir outputs/cnn --out_dir site/demo
 ```
 
-Then commit `site/demo/`; the Pages workflow deploys it. The weights are stored
-as float16 (8.3 MB), which moves scores by under 0.001 and changes no test-set
-verdict.
+Then commit `site/demo/`; the Pages workflow deploys it, and push the same run
+to the Hub with `legal-risk-export-hf` so notebook 5's Gradio demo, which loads
+the Hub checkpoint, keeps matching. The weights are stored as float16 (8.3 MB),
+which moves scores by under 0.001 and changes no test-set verdict.
 
 Only the CNN can run this way. A fine-tuned BERT or Legal-BERT is about 440 MB.
 
-### Why not a Hugging Face Space
-
-`deploy/space/` holds a Gradio app for a Space, and was the original plan. As of
-November 2026, Hugging Face hosts Gradio and Docker Spaces on its free CPU only
-for PRO subscribers; static Spaces stay free. The app still runs anywhere
-Python does, for example `legal-risk-demo --run_dir outputs/cnn --share` from a
-notebook, which is what notebook 5 does.
+A Gradio Space was the original plan, but since November 2026 Hugging Face hosts
+Gradio and Docker Spaces on its free CPU only for PRO subscribers; static Spaces
+stay free. The Gradio app (`legal-risk-demo`) still runs anywhere Python does,
+which is what notebook 5 does with `--share`.
 
 ## Model — Hugging Face Hub
 
@@ -101,10 +77,3 @@ model.config.id2label      # {0: 'Cap on Liability', 1: 'Non-Compete', ...}
 
 The TextCNN is not a transformers architecture, so its card says so and points
 at `CNNRuntime` rather than promising a `from_pretrained` that would fail.
-
-## Why not one deployment for both
-
-A static page costs nothing to host and never sleeps. A Space holding a model
-sleeps after inactivity and takes time to wake. Keeping the results on Pages
-means the thing most people open is always instant, and the demo is there for
-anyone who wants to try their own contract.

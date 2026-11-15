@@ -34,10 +34,6 @@ class Chunk:
     text: str
     labels: tuple[str, ...]
 
-    @property
-    def chunk_id(self) -> str:
-        return f"{self.doc_id}::chunk{self.index}"
-
 
 def word_offsets(text: str) -> list[Span]:
     """Character (start, end) for every whitespace-delimited word."""

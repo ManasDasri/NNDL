@@ -141,7 +141,7 @@ CUAD_v1.json
        │             meaningfully overlaps an annotated span
        └─ training   one shared loop for every model
             └─ evaluate   window-level and document-level, thresholds from validation
-                 └─ compare / dashboard / demo
+                 └─ compare / demo
 ```
 
 Four decisions worth knowing before reading the code:
@@ -178,8 +178,8 @@ src/legal_risk_classifier/
   train_cnn.py train_transformer.py  the two entry points
   pooling.py learned_pooling.py      seven rules plus the one that lost
   evaluate.py compare.py plots.py    window and document scoring, and their plots
-  attribution.py runtime.py demo.py  interpretability and the browser demo
-  export_dashboard.py export_hf.py   results page and Hugging Face publishing
+  attribution.py runtime.py demo.py  interpretability and the Gradio demo
+  export_web.py export_hf.py         browser demo weights and Hugging Face publishing
 notebooks/                           Colab runners
 docs/                                generated reports and the model justification
 tests/                               95 checks, no pytest required
@@ -219,15 +219,20 @@ legal-risk-evaluate --run_dir outputs/cnn --split test
 legal-risk-export-web --run_dir outputs/cnn --out_dir site/demo
 ```
 
-A generated dashboard (`legal-risk-export-dashboard`) can also be pushed to a
-static Hugging Face Space. See [deploy/](./deploy/README.md).
+The same `site/` folder is mirrored to a static Hugging Face Space. See
+[deploy/](./deploy/README.md).
 
 ## Demo
 
 ```bash
 pip install -e ".[demo]"
+hf download KenX049/cuad-clause-risk-cnn --local-dir outputs/cnn   # the published CNN
 legal-risk-demo --run_dir outputs/cnn          # --share for a temporary public link
 ```
+
+Run on the published checkpoint, it gives the same scores and flags as the
+browser demo. A CNN you trained yourself needs `legal-risk-evaluate` first, or
+its contract verdicts use the window thresholds.
 
 Paste a contract; get the six labels scored against their own thresholds, the
 flagged passages with confidence and character offsets, and the phrases that

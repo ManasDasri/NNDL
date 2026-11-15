@@ -15,7 +15,7 @@ exposes, so nothing in them can drift from what the code actually does.
 | [2 · CNN baseline](https://colab.research.google.com/github/ManasDasri/NNDL/blob/main/notebooks/2_cnn_baseline.ipynb) | Trains the CNN, plus the unweighted-loss ablation | 15 min |
 | [3 · Problem 1](https://colab.research.google.com/github/ManasDasri/NNDL/blob/main/notebooks/3_problem1_legal_bert.ipynb) | **BERT vs Legal-BERT** | ~1 hour, GPU |
 | [4 · Problem 2](https://colab.research.google.com/github/ManasDasri/NNDL/blob/main/notebooks/4_problem2_longformer.ipynb) | **BERT vs Longformer** | several hours, GPU |
-| [5 · Demo](https://colab.research.google.com/github/ManasDasri/NNDL/blob/main/notebooks/5_demo_and_interpretability.ipynb) | Browser demo and attribution | 10 min |
+| [5 · Demo](https://colab.research.google.com/github/ManasDasri/NNDL/blob/main/notebooks/5_demo_and_interpretability.ipynb) | Gradio demo and attribution, on the published CNN | 10 min |
 
 > **Turn the GPU on first.** Colab: Runtime → Change runtime type → T4 GPU.
 > Kaggle: Settings → Accelerator → GPU T4 x2, with Internet on. Notebooks 3
@@ -101,9 +101,6 @@ legal-risk-compare outputs/cnn outputs/bert outputs/legal_bert   # -> docs/resul
 hf auth login
 legal-risk-export-hf --run_dir outputs/legal_bert \
     --repo_id <user>/cuad-clause-risk-legal-bert --push
-
-python -m legal_risk_classifier.export_dashboard \
-    --run_dir outputs/cnn --repo_id <user>/clause-risk-review --push
 ```
 
 Note `hf auth login`, not `huggingface-cli login` — the latter is deprecated and

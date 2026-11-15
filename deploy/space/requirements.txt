@@ -1,5 +1,0 @@
-# CPU wheels: a free Space has no GPU, and the CUDA build is several GB.
---extra-index-url https://download.pytorch.org/whl/cpu
-torch>=2.2
-numpy>=1.26
-scikit-learn>=1.4
