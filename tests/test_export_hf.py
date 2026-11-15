@@ -183,3 +183,15 @@ if __name__ == "__main__":
         test()
         print(f"  ok  {test.__name__}")
     print(f"\n{len(tests)} passed")
+
+
+def test_card_reports_the_evaluation_pooling_and_contract_thresholds() -> None:
+    per_class = [{"label": name, "threshold": 0.11} for name in LABEL_NAMES]
+    evaluation = {"pooling": "noisy_or",
+                  "document_level": {"macro_f1": 0.846, "macro_average_precision": 0.904,
+                                     "per_class": per_class}}
+    with tempfile.TemporaryDirectory() as tmp:
+        (Path(tmp) / "evaluation_test.json").write_text(json.dumps(evaluation), encoding="utf-8")
+        card = render_card(SUMMARY, Path(tmp), "user/model")
+    assert "noisy-or over windows" in card and "max-pooled" not in card
+    assert "| Label | Window | Contract |" in card and "0.11 |" in card
