@@ -80,56 +80,57 @@ were pretrained on. BERT and Longformer differ mainly in how much text they read
 well the model ranks real clauses above false ones. Both run from 0 to 1, higher is better.</p>
 <div class="scroll">
 <table>
-  <tr><th>Model</th><th class="n">Contract F1</th><th class="n">Contract AP</th><th class="n">Window F1</th></tr>
-  <tr><td>TextCNN</td><td class="n">0.846</td><td class="n">0.904</td><td class="n">0.663</td></tr>
-  <tr><td><b>BERT</b></td><td class="n"><b>0.879</b></td><td class="n">0.933</td><td class="n">0.723</td></tr>
-  <tr><td><b>Legal-BERT</b></td><td class="n">0.875</td><td class="n"><b>0.936</b></td><td class="n">0.718</td></tr>
-  <tr><td>Longformer</td><td class="n">0.821</td><td class="n">0.868</td><td class="n">0.715*</td></tr>
+  <tr><th>Model</th><th class="n">Contract F1</th><th class="n">Contract AP</th><th class="n">Window F1</th><th>Runs</th></tr>
+  <tr><td>TextCNN</td><td class="n">0.834</td><td class="n">0.898</td><td class="n">0.658</td><td>3</td></tr>
+  <tr><td>BERT</td><td class="n">0.861</td><td class="n">0.917</td><td class="n">0.697</td><td>3</td></tr>
+  <tr><td><b>Legal-BERT</b></td><td class="n"><b>0.883</b></td><td class="n"><b>0.928</b></td><td class="n"><b>0.744</b></td><td>3</td></tr>
+  <tr><td>Longformer</td><td class="n">0.831</td><td class="n">0.886</td><td class="n">0.743*</td><td>2</td></tr>
 </table>
 </div>
-<p class="small"><b>Contract</b> scores ask whether the clause was found anywhere in the contract.
+<p class="small">Each score is the average over several training runs with different random seeds.
+<b>Contract</b> scores ask whether the clause was found anywhere in the contract.
 <b>Window</b> scores ask whether it was spotted in a single window. *Longformer's windows are nine
 times larger, so its window score is not comparable with the others. Training the same model twice
-changes F1 by about &plusmn;0.03, so smaller differences are not meaningful.</p>
+changes F1 by up to about &plusmn;0.03, which is why every model was trained more than once.</p>
 
 <h3>Question 1: does pretraining on legal text help?</h3>
-<p><b>No measurable advantage.</b> Legal-BERT scored 0.005 below BERT on window F1. For scale, BERT
-trained twice with different random seeds differed from itself by 0.006. Legal-BERT ranked
-slightly better (window AP 0.769 against 0.736), and the two tie at contract level. Legal-BERT was
-trained once, so its small ranking edge is not yet confirmed.</p>
+<p><b>Yes.</b> Over three runs each, Legal-BERT beat BERT by 0.047 window F1 (0.744 against 0.697),
+and its worst run beat BERT's best. It also ranked real clauses better (window AP 0.805 against
+0.750) and varied less from run to run. At contract level the gap is smaller (0.883 against 0.861)
+and the runs overlap.</p>
 <div class="scroll">
 <table>
-  <tr><th>Clause type (window F1)</th><th class="n">TextCNN</th><th class="n">BERT</th><th class="n">Legal-BERT</th><th class="n">Legal &minus; BERT</th></tr>
-  <tr><td>Termination for Convenience</td><td class="n">0.544</td><td class="n">0.621</td><td class="n">0.685</td><td class="n">+0.064</td></tr>
-  <tr><td>Insurance</td><td class="n">0.841</td><td class="n">0.876</td><td class="n">0.871</td><td class="n">&minus;0.004</td></tr>
-  <tr><td>License Grant</td><td class="n">0.760</td><td class="n">0.762</td><td class="n">0.752</td><td class="n">&minus;0.010</td></tr>
-  <tr><td>Audit Rights</td><td class="n">0.696</td><td class="n">0.738</td><td class="n">0.725</td><td class="n">&minus;0.013</td></tr>
-  <tr><td>Cap on Liability</td><td class="n">0.780</td><td class="n">0.780</td><td class="n">0.766</td><td class="n">&minus;0.015</td></tr>
-  <tr><td>Non-Compete</td><td class="n">0.317</td><td class="n">0.560</td><td class="n">0.509</td><td class="n">&minus;0.051</td></tr>
+  <tr><th>Clause type (window F1, average of 3 runs)</th><th class="n">BERT</th><th class="n">Legal-BERT</th><th class="n">Gain</th></tr>
+  <tr><td>Termination for Convenience</td><td class="n">0.586</td><td class="n">0.693</td><td class="n"><b>+0.107</b></td></tr>
+  <tr><td>Cap on Liability</td><td class="n">0.740</td><td class="n">0.817</td><td class="n"><b>+0.077</b></td></tr>
+  <tr><td>License Grant</td><td class="n">0.741</td><td class="n">0.797</td><td class="n"><b>+0.056</b></td></tr>
+  <tr><td>Non-Compete</td><td class="n">0.547</td><td class="n">0.580</td><td class="n">+0.033</td></tr>
+  <tr><td>Audit Rights</td><td class="n">0.716</td><td class="n">0.734</td><td class="n">+0.018</td></tr>
+  <tr><td>Insurance</td><td class="n">0.854</td><td class="n">0.847</td><td class="n">&minus;0.007</td></tr>
 </table>
 </div>
-<p class="small">TextCNN column is from the same training session as the two BERT models (0.656 overall).</p>
-<p>We expected legal pretraining to help most on clause types full of legal jargon. That did not
-happen: Cap on Liability, the most jargon-heavy, gained nothing. The only clear gain was
-Termination for Convenience. Both BERT models clearly beat the CNN, most of all on the rarest
-clause type, Non-Compete (0.317 to 0.560).</p>
+<p>This is the pattern we predicted. The gain is largest on clause types written in legal phrasing,
+and there is none on Insurance, whose wording ("shall maintain insurance") is ordinary English.</p>
+<p class="small">Our first comparison trained each model only once and found no difference. One
+unusually low Legal-BERT run decided that result, which is why we retrained each model with
+three different seeds.</p>
 
 <h3>Question 2: does reading more of the contract at once help?</h3>
-<p><b>No. It scored lower.</b> Longformer reads 2,600 words per window against BERT's 300, yet it
-finished 0.058 contract F1 below BERT, about twice the noise level, and below the CNN as well.</p>
-<p>Two likely reasons. These clauses can usually be recognised from their own sentence, so extra
-surrounding text adds little. And bigger windows mean fewer of them: 1,380 training windows
-against BERT's 13,829.</p>
-<p>Because of that, Longformer needed ten passes over the data where BERT needed three. Its
-validation F1 after each pass:</p>
+<p><b>No.</b> Longformer reads 2,600 words per window against BERT's 300, yet over two runs it scored
+0.831 contract F1: below every BERT and Legal-BERT run, and level with the much smaller CNN.</p>
+<p>Two reasons. These clauses can usually be recognised from their own sentence, so extra
+surrounding text adds little. And bigger windows mean fewer, vaguer training examples: 1,380
+windows against BERT's 13,829, each saying only that a clause is somewhere in 2,600 words.</p>
+<p>Longformer was given up to ten passes over the data where BERT had three. Both runs stopped
+improving after pass 7, so the result is not from cutting training short. Its validation F1 after
+each pass:</p>
 <div class="scroll">
 <table>
-  <tr><th>Pass</th><th class="n">1</th><th class="n">2</th><th class="n">3</th><th class="n">4</th><th class="n">5</th><th class="n">6</th><th class="n">7</th><th class="n">8</th><th class="n">9</th><th class="n">10</th></tr>
-  <tr><td>Validation F1</td><td class="n">0.218</td><td class="n">0.401</td><td class="n">0.500</td><td class="n">0.476</td><td class="n">0.608</td><td class="n">0.605</td><td class="n">0.646</td><td class="n">0.659</td><td class="n">0.663</td><td class="n">0.689</td></tr>
+  <tr><th>Pass</th><th class="n">1</th><th class="n">2</th><th class="n">3</th><th class="n">4</th><th class="n">5</th><th class="n">6</th><th class="n">7</th><th class="n">8</th><th class="n">9</th></tr>
+  <tr><td>Run 1</td><td class="n">0.301</td><td class="n">0.403</td><td class="n">0.589</td><td class="n">0.535</td><td class="n">0.662</td><td class="n">0.649</td><td class="n"><b>0.700</b></td><td class="n">0.685</td><td class="n">0.661</td></tr>
+  <tr><td>Run 2</td><td class="n">0.102</td><td class="n">0.366</td><td class="n">0.448</td><td class="n">0.549</td><td class="n">0.563</td><td class="n">0.649</td><td class="n"><b>0.692</b></td><td class="n">0.680</td><td class="n">0.682</td></tr>
 </table>
 </div>
-<p class="small">Its best score was on the last pass, so it had not fully levelled off, and it was
-trained once. Its improvement had slowed to 0.01&ndash;0.03 per pass.</p>
 
 <h2>Combining windows: noisy-OR</h2>
 <p>Each window gets its own score, but the question is about the whole contract. The first version
@@ -153,7 +154,9 @@ windows was far worse, at 0.511 F1.</p>
 <h2>Limits</h2>
 <ul>
   <li>Trained on 358 contracts. The rarest clause types are the weakest.</li>
-  <li>Legal-BERT and Longformer were each trained once; BERT twice.</li>
+  <li>BERT, Legal-BERT and the CNN were trained three times each, Longformer twice.</li>
+  <li>Longformer ran on a free T4 GPU with one window at a time; a larger GPU, or a long-context
+      model pretrained on legal text, would be a fairer test of long context.</li>
   <li>CUAD is US commercial contracts. Other kinds of contract are untested.</li>
   <li>This is a research project and not legal advice.</li>
 </ul>

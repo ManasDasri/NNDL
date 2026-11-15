@@ -51,8 +51,9 @@ a clause lying mostly in the cut-off part.
 | Tokens cut off | 487,550 | 19,090 |
 
 For BERT and Legal-BERT the token sequences are identical before and after, so
-the Problem 1 results are unaffected. **The Longformer result in the handbook
-predates this fix.** Notebook 4 reruns it; Problem 2 is provisional until then.
+the Problem 1 results are unaffected. Notebook 4 was rerun
+with this fix, twice: Longformer moved from 0.821 to 0.831 document F1 and from
+0.868 to 0.886 AP, and Problem 2's answer did not change.
 
 ### The last partial batch of every epoch never trained
 

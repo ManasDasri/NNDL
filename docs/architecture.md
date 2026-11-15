@@ -109,18 +109,21 @@ which is what confirmed the diagnosis rather than a regression.
 
 Test split: 76 contracts, 3,314 windows, never trained on.
 
+Mean ± standard deviation over seeds.
+
 | Model | Window macro F1 | Window macro AP | Document macro F1 | Document macro AP |
 |---|---:|---:|---:|---:|
-| TextCNN | 0.663 | — | 0.846 | 0.904 |
-| BERT | 0.723 | 0.736 | 0.879 | 0.933 |
-| Legal-BERT | 0.718 | 0.769 | 0.875 | 0.936 |
-| Longformer | 0.715† | 0.733† | 0.821 | 0.868 |
+| TextCNN | 0.658 ± 0.018 | 0.694 ± 0.013 | 0.834 ± 0.017 | 0.898 ± 0.017 |
+| BERT | 0.697 ± 0.014 | 0.750 ± 0.015 | 0.861 ± 0.017 | 0.917 ± 0.012 |
+| Legal-BERT | 0.744 ± 0.005 | 0.805 ± 0.004 | 0.883 ± 0.009 | 0.928 ± 0.005 |
+| Longformer | 0.743† | 0.770† | 0.831 | 0.886 |
 
-BERT and Legal-BERT come from notebook 3 on a Colab T4: 3 epochs, lr 2e-5,
-batch 16. A second BERT seed scored 0.729 window F1 / 0.757 AP. Longformer
-comes from notebook 4: 10 epochs, batch 1 with 16-step accumulation, gradient
-checkpointing. †Its window scores are on 2,600-word windows (326 test windows
-against 3,314) and are not comparable with the other rows.
+BERT and Legal-BERT are seeds 42, 1 and 2 of notebook 3 on a Kaggle T4: 3
+epochs, lr 2e-5, batch 16. Longformer is two runs of notebook 4 (Colab and
+Kaggle): up to 10 epochs with patience 2, batch 1 with 16-step accumulation,
+gradient checkpointing. †Its window scores are on 2,600-word windows (326 test
+windows against 3,314) and are not comparable with the other rows. Reports for
+every run: [classification-reports.md](classification-reports.md).
 
 Per-label CNN thresholds, tuned on validation: Cap on Liability 0.78 ·
 Non-Compete 0.28 · License Grant 0.32 · Audit Rights 0.39 · Termination for
@@ -132,27 +135,26 @@ GPU. Nothing smaller than that is a finding.
 
 ### Status of the two problems
 
-**Problem 1 is answered: no measurable advantage from legal pretraining.**
-Legal-BERT is 0.005 below BERT on window F1, inside the 0.006 that BERT moved
-between its own two seeds. It ranks marginally better on window AP and ties at
-document level. The predicted vocabulary-specific gains did not appear; the only
-clear per-label gain is Termination for Convenience. Legal-BERT has one seed, so
-the AP edge is not yet claimable. Detail in
+**Problem 1 is answered: legal pretraining helps.** Over three seeds each,
+Legal-BERT leads BERT by +0.047 window F1 and +0.055 window AP, with no overlap
+between their runs, and the gain concentrates in the labels written in legal
+phrasing (Termination for Convenience, Cap on Liability, License Grant) while
+Insurance gains nothing. At document level the lead is +0.022 and the runs
+overlap. A first single run of each had shown a tie. Detail in
 [handbook chapter 12](../handbook/12-results.md).
 
-**Problem 2 is answered: longer context did not help.** Longformer scores 0.821
-document F1 against BERT's 0.879, about twice the noise floor, and below the CNN.
-Equal epochs would have been unfair, since 2,600-word windows leave 1,380
-training windows against 13,829, so it was trained for 10 epochs; a first
-3-epoch run (0.759) was undertrained and is not reported as the result. Early
-stopping never fired, so it had not fully plateaued, with one seed.
+**Problem 2 is answered: longer context did not help.** Longformer scores 0.831
+document F1 over two runs, below every BERT and Legal-BERT run and level with
+the CNN. Equal epochs would have been unfair, since 2,600-word windows leave
+1,380 training windows against 13,829, so it was trained for up to 10 epochs;
+both runs stopped early at epoch 9 with their best at epoch 7.
 
 Longformer remains the CLI default because that was a product decision made
-before this result; on these numbers BERT is the better model, and the default
-is worth revisiting.
+before this result; on these numbers Legal-BERT is the best model, and the
+default is worth revisiting.
 
-Still owed: the run directories from notebooks 3 and 4 never left Colab, so the
-numbers above are read from printed output. Saving them unblocks
+Still owed: the run directories from notebooks 3 and 4 are still on Kaggle, so
+the numbers above are read from printed output. Downloading them unblocks
 `legal-risk-compare`, the dashboard, `legal-risk-export-hf`, and the two pooling
 checks that need Longformer's predictions: noisy-OR against max at ~4 windows,
 and the learned aggregator.

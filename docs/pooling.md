@@ -172,12 +172,13 @@ within each group makes max-of-max identical to the global max, so the baseline
 is invariant by construction and the comparison is unfair to it. The remaining
 differences stayed inside the noise floor.
 
-Longformer has since been trained. Noisy-OR lifted it from 0.715 window F1 to
-0.821 document F1, a gain of 0.106 against 0.156 for BERT at ~38 chunks. So the
+Longformer has since been trained, twice after the fixes. Noisy-OR lifted it
+by about 0.09 (0.749 → 0.834 and 0.736 → 0.828) against 0.164 for BERT at ~38
+chunks. So the
 expectation that noisy_or matters more as chunk count falls is **not confirmed**:
 with four chunks there is simply less to combine. Whether noisy_or still beats
 max at four chunks is unmeasured, because that needs Longformer's chunk
-predictions and the run directory did not leave Colab.
+predictions and the run directory has not been downloaded from Kaggle.
 
 ## Reproducing
 
