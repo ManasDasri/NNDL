@@ -1,0 +1,109 @@
+{
+ "labels": [
+  "Cap on Liability",
+  "Non-Compete",
+  "License Grant",
+  "Audit Rights",
+  "Termination for Convenience",
+  "Insurance"
+ ],
+ "vocab_size": 30968,
+ "embedding_dim": 128,
+ "num_filters": 128,
+ "kernel_sizes": [
+  3,
+  4,
+  5
+ ],
+ "tensors": [
+  {
+   "name": "embedding",
+   "shape": [
+    30968,
+    128
+   ]
+  },
+  {
+   "name": "conv0.weight",
+   "shape": [
+    128,
+    128,
+    3
+   ]
+  },
+  {
+   "name": "conv0.bias",
+   "shape": [
+    128
+   ]
+  },
+  {
+   "name": "conv1.weight",
+   "shape": [
+    128,
+    128,
+    4
+   ]
+  },
+  {
+   "name": "conv1.bias",
+   "shape": [
+    128
+   ]
+  },
+  {
+   "name": "conv2.weight",
+   "shape": [
+    128,
+    128,
+    5
+   ]
+  },
+  {
+   "name": "conv2.bias",
+   "shape": [
+    128
+   ]
+  },
+  {
+   "name": "classifier.weight",
+   "shape": [
+    6,
+    384
+   ]
+  },
+  {
+   "name": "classifier.bias",
+   "shape": [
+    6
+   ]
+  }
+ ],
+ "chunking": {
+  "window": 300,
+  "overlap": 100,
+  "max_tokens": 400
+ },
+ "pooling": "noisy_or",
+ "window_thresholds": [
+  0.7800000000000001,
+  0.28,
+  0.32000000000000006,
+  0.39000000000000007,
+  0.22000000000000003,
+  0.8300000000000002
+ ],
+ "contract_thresholds": [
+  0.8200000000000002,
+  0.7500000000000001,
+  0.29000000000000004,
+  0.45000000000000007,
+  0.4200000000000001,
+  0.09000000000000001
+ ],
+ "test_scores": {
+  "window_macro_f1": 0.6631084654438721,
+  "contract_macro_f1": 0.846347284528597,
+  "contract_macro_ap": 0.9042322796159183
+ }
+}

@@ -41,34 +41,34 @@ the owner now wants the project on that domain, and the workflow publishes only
 
 To take it down: Settings -> Pages -> Source: None.
 
-## Demo — HuggingFace Spaces
+## Demo — in the browser, on the results site
 
-The Space holds a checkpoint and a six-line `app.py`; the model code is
-installed from this repository, so the demo cannot drift from the pipeline the
-results were measured on.
+Live at https://www.algorithmicbit.tech/NNDL/demo/, linked from the results page.
+
+The TextCNN runs in the visitor's browser, so there is no server to pay for,
+keep awake or restart. `site/demo/model.js` is a line-for-line port of the
+chunking, the model, noisy-OR pooling and the phrase attribution; on test
+contracts it matches Python to within 1e-6 and gives identical verdicts and
+phrases. To publish a new CNN run:
 
 ```bash
-pip install huggingface_hub
-hf auth login                              # needs a token with write access
-
-hf repo create nndl-clause-risk --repo-type space --space_sdk gradio
-git clone https://huggingface.co/spaces/<your-username>/nndl-clause-risk
-cd nndl-clause-risk
-
-cp ../NNDL/deploy/space/{app.py,requirements.txt,README.md} .
-mkdir -p run
-cp ../NNDL/outputs/cnn/{model.pt,vocab.json,metrics.json,training.json} run/
-
-git lfs install && git lfs track "run/model.pt"
-git add -A && git commit -m "Deploy clause risk demo" && git push
+legal-risk-evaluate --run_dir outputs/cnn --split test   # contract thresholds
+legal-risk-export-web --run_dir outputs/cnn --out_dir site/demo
 ```
 
-The checkpoint is about 16 MB, which is why it goes through Git LFS. Free
-Spaces run on CPU; the CNN scores a contract in well under a second there.
+Then commit `site/demo/`; the Pages workflow deploys it. The weights are stored
+as float16 (8.3 MB), which moves scores by under 0.001 and changes no test-set
+verdict.
 
-To deploy a transformer instead, point `run/` at that run directory — but a
-fine-tuned BERT checkpoint is roughly 440 MB, and a free CPU Space will be slow
-enough to notice.
+Only the CNN can run this way. A fine-tuned BERT or Legal-BERT is about 440 MB.
+
+### Why not a Hugging Face Space
+
+`deploy/space/` holds a Gradio app for a Space, and was the original plan. As of
+November 2026, Hugging Face hosts Gradio and Docker Spaces on its free CPU only
+for PRO subscribers; static Spaces stay free. The app still runs anywhere
+Python does, for example `legal-risk-demo --run_dir outputs/cnn --share` from a
+notebook, which is what notebook 5 does.
 
 ## Model — Hugging Face Hub
 

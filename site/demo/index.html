@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clause Risk Demo</title>
+<style>
+  body { background-color: #f5f0e1;
+         background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='grain' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' opacity='.3' filter='url(%23grain)'/%3E%3C/svg%3E");
+         color: #2b2620; font-family: Georgia, "Times New Roman", serif;
+         font-size: 18px; line-height: 1.6; max-width: 760px; margin: 0 auto; padding: 32px 18px 64px; }
+  h1 { font-size: 2em; line-height: 1.2; margin-bottom: 0.2em; }
+  h2 { margin-top: 1.6em; border-bottom: 1px solid #c9bfa5; padding-bottom: 4px; }
+  .small { font-size: 0.88em; color: #5c5346; }
+  a { color: #7a3b12; }
+  textarea { width: 100%; box-sizing: border-box; height: 16em; font: 15px/1.5 Georgia, serif;
+             background: #fbf8ef; color: #2b2620; border: 1px solid #c9bfa5; padding: 10px; }
+  button, select { font: inherit; font-size: 0.9em; padding: 6px 14px; border: 1px solid #a8987a;
+                   background: #ebe3cd; color: #2b2620; cursor: pointer; }
+  button.primary { background: #7a3b12; color: #fbf8ef; border-color: #7a3b12; }
+  button:disabled { opacity: 0.5; cursor: default; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.92em; }
+  td, th { border-bottom: 1px solid #c9bfa5; padding: 6px 8px; text-align: left; }
+  td.n { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .scroll { overflow-x: auto; }
+  .bar { height: 10px; background: #ebe3cd; min-width: 80px; }
+  .bar span { display: block; height: 100%; background: #7a3b12; }
+  .yes { font-weight: bold; color: #7a3b12; }
+  blockquote { margin: 0.6em 0; padding: 8px 12px; background: #fbf8ef; border-left: 3px solid #7a3b12;
+               font-size: 0.9em; max-height: 14em; overflow: auto; white-space: pre-wrap; }
+  code { background: #ebe3cd; padding: 1px 5px; }
+  #status { min-height: 1.6em; }
+</style>
+</head>
+<body>
+
+<p class="small"><a href="../">&larr; Results</a></p>
+<h1>Try the demo</h1>
+<p>Paste a commercial contract and the model will flag which of the six risk-relevant clause types
+it contains, show the passages that triggered each flag, and the phrases it relied on.</p>
+<p class="small">The model is the project's TextCNN baseline (contract-level F1 <span id="f1">0.846</span> on the
+held-out test contracts). It runs entirely in your browser: nothing you paste leaves this page. The
+stronger Legal-BERT model is about 50 times larger, too big to run here. A research project, not
+legal advice.</p>
+
+<div class="row">
+  <button id="load-contract">Load a test-set contract</button>
+  <button id="load-excerpt">Load a short made-up excerpt</button>
+</div>
+<textarea id="text" placeholder="Paste contract text here, or load an example."></textarea>
+<div class="row">
+  <button id="analyse" class="primary" disabled>Loading model&hellip;</button>
+  <span id="status" class="small"></span>
+</div>
+<p id="example-note" class="small" hidden></p>
+
+<div id="results" hidden>
+  <h2>Clause types found</h2>
+  <div class="scroll"><table>
+    <thead><tr><th>Clause type</th><th class="n">Score</th><th></th><th class="n">Needs</th><th>Found?</th></tr></thead>
+    <tbody id="scores"></tbody>
+  </table></div>
+  <p class="small">Each 300-word window of the contract is scored separately, and the windows are combined
+  with noisy-OR. Each clause type has its own cut-off ("Needs"), chosen on separate validation
+  contracts, so they are not all 0.5.</p>
+
+  <h2>Evidence</h2>
+  <div class="row">Show evidence for <select id="label"></select></div>
+  <div id="evidence"></div>
+</div>
+
+<script type="module">
+import { loadModel, predict, explain } from "./model.js";
+
+const $ = id => document.getElementById(id);
+const EXCERPT = "Supplier shall maintain, at its own expense, commercial general liability insurance with limits of not less than $2,000,000 per occurrence, and shall provide a certificate of insurance naming Customer as an additional insured. In no event shall either party's aggregate liability under this Agreement exceed the fees paid in the twelve months preceding the claim. Customer may terminate this Agreement for convenience at any time upon thirty (30) days' prior written notice. Supplier grants Customer a non-exclusive, non-transferable license to use the Software during the Term.";
+const NOTES = {
+  contract: "A sponsorship agreement from the held-out test set, which lawyers marked with Cap on Liability, Insurance and License Grant. Chosen because the model gets all three right, so it shows a working case, not a typical one.",
+  excerpt: "A short made-up excerpt containing Insurance, Cap on Liability, Termination for Convenience and License Grant. It is far shorter than the contracts the model learned from, and it finds only Insurance. The cap is worded “in no event shall … exceed”, and the model tends to key on the word “liability” instead.",
+};
+let model, last;
+
+function setExample(kind, text) {
+  $("text").value = text;
+  $("example-note").textContent = NOTES[kind];
+  $("example-note").hidden = false;
+}
+$("text").addEventListener("input", () => { $("example-note").hidden = true; });
+$("load-excerpt").onclick = () => setExample("excerpt", EXCERPT);
+$("load-contract").onclick = async () =>
+  setExample("contract", await (await fetch("example_contract.txt")).text());
+
+function esc(s) {
+  return s.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+}
+
+function showEvidence() {
+  const { config } = model, l = +$("label").value, label = config.labels[l];
+  const cut = config.window_thresholds[l];
+  const hits = last.chunks.map((c, i) => ({ c, p: last.probs[i][l] }))
+    .filter(h => h.p >= cut).sort((a, b) => b.p - a.p);
+  let html;
+  if (!hits.length) {
+    const strongest = Math.max(...last.probs.map(p => p[l]));
+    html = `<p>No window reached the ${esc(label)} cut-off of ${cut.toFixed(2)}. The strongest scored ${strongest.toFixed(2)}.</p>`;
+  } else {
+    html = `<p>${hits.length} window${hits.length > 1 ? "s" : ""} fired (cut-off ${cut.toFixed(2)}). The strongest ${Math.min(hits.length, 5)}:</p>` +
+      hits.slice(0, 5).map(h => `<p class="small">Window ${h.c.index + 1} of ${last.chunks.length}, score ${h.p.toFixed(2)}</p><blockquote>${esc(h.c.text)}</blockquote>`).join("");
+  }
+  const phrases = explain(model, hits.length ? hits[0].c.text : $("text").value, label);
+  html += `<h3>What triggered it</h3>` + (phrases.length
+    ? `<p class="small">Phrases whose filters pushed the ${esc(label)} score up most, in ${hits.length ? "the strongest window" : "the opening of the text"}:</p><ul>` +
+      phrases.map(p => `<li><code>${esc(p.text)}</code> &nbsp;${p.contribution.toFixed(2)}</li>`).join("") + "</ul>"
+    : "<p>No phrase pushed this score up.</p>");
+  $("evidence").innerHTML = html;
+}
+
+$("analyse").onclick = () => {
+  const text = $("text").value;
+  if (!text.trim()) { $("status").textContent = "Paste some contract text first."; return; }
+  $("status").textContent = "Analysing…";
+  setTimeout(() => {
+    const t0 = performance.now();
+    last = predict(model, text);
+    const { labels, contract_thresholds } = model.config;
+    $("scores").innerHTML = labels.map((name, l) => {
+      const s = last.scores[l], yes = last.predicted[l];
+      return `<tr><td>${name}</td><td class="n">${(100 * s).toFixed(0)}%</td>` +
+        `<td><div class="bar"><span style="width:${(100 * s).toFixed(1)}%"></span></div></td>` +
+        `<td class="n">${(100 * contract_thresholds[l]).toFixed(0)}%</td>` +
+        `<td class="${yes ? "yes" : ""}">${yes ? "Yes" : "No"}</td></tr>`;
+    }).join("");
+    const firstFound = last.predicted.indexOf(true);
+    $("label").value = String(firstFound >= 0 ? firstFound : 0);
+    showEvidence();
+    $("results").hidden = false;
+    $("status").textContent = `${last.chunks.length} window${last.chunks.length === 1 ? "" : "s"} scored in ${((performance.now() - t0) / 1000).toFixed(1)} s.`;
+  }, 20);
+};
+$("label").onchange = showEvidence;
+
+try {
+  const [config, vocab, weights] = await Promise.all([
+    fetch("config.json").then(r => r.json()),
+    fetch("vocab.json").then(r => r.json()),
+    fetch("model.bin").then(r => r.arrayBuffer()),
+  ]);
+  model = loadModel(config, vocab, weights);
+  $("label").innerHTML = config.labels.map((n, i) => `<option value="${i}">${n}</option>`).join("");
+  if (config.test_scores) $("f1").textContent = config.test_scores.contract_macro_f1.toFixed(3);
+  $("analyse").textContent = "Analyse";
+  $("analyse").disabled = false;
+} catch (error) {
+  $("analyse").textContent = "Model failed to load";
+  $("status").textContent = String(error);
+}
+</script>
+</body>
+</html>

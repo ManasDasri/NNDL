@@ -10,6 +10,7 @@ import sys
 import tempfile
 from pathlib import Path
 
+import numpy as np
 import torch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
@@ -143,7 +144,7 @@ def test_runtime_rebuilds_the_model_from_a_run_directory() -> None:
         assert "Insurance" in prediction.predicted, "the clause it was trained on must flag"
 
 
-def test_runtime_pools_with_the_maximum_over_chunks() -> None:
+def test_runtime_pools_with_noisy_or_over_chunks() -> None:
     """The runtime must agree with the evaluation path, not approximate it."""
     from legal_risk_classifier.runtime import CNNRuntime
 
@@ -152,9 +153,26 @@ def test_runtime_pools_with_the_maximum_over_chunks() -> None:
         text = " ".join([FILLER] * 6 + [CLAUSE] + [FILLER] * 6)
         prediction = runtime.predict_document(text)
         index = LABEL_TO_INDEX["Insurance"]
-        assert abs(
-            prediction.document_scores["Insurance"] - float(prediction.chunk_probs[:, index].max())
-        ) < 1e-6
+        noisy_or = 1.0 - np.prod(1.0 - np.clip(prediction.chunk_probs[:, index], 1e-6, 1 - 1e-6))
+        assert abs(prediction.document_scores["Insurance"] - noisy_or) < 1e-5
+
+
+def test_runtime_uses_the_evaluation_pooling_and_contract_thresholds() -> None:
+    from legal_risk_classifier.runtime import CNNRuntime
+
+    with tempfile.TemporaryDirectory() as tmp:
+        run_dir = _write_run(Path(tmp))
+        per_class = [{"threshold": 0.9} for _ in LABEL_NAMES]
+        (run_dir / "evaluation_test.json").write_text(json.dumps(
+            {"pooling": "max", "pooling_params": {}, "document_level": {"per_class": per_class}}
+        ), encoding="utf-8")
+        runtime = CNNRuntime(run_dir)
+        assert runtime.threshold_for("Insurance") == 0.9
+        assert runtime.window_threshold_for("Insurance") == 0.5
+        prediction = runtime.predict_document(" ".join([FILLER] * 6 + [CLAUSE]))
+        index = LABEL_TO_INDEX["Insurance"]
+        assert abs(prediction.document_scores["Insurance"]
+                   - float(prediction.chunk_probs[:, index].max())) < 1e-6
 
 
 def test_runtime_handles_empty_text() -> None:
@@ -200,3 +218,27 @@ if __name__ == "__main__":
         test()
         print(f"  ok  {test.__name__}")
     print(f"\n{len(tests)} passed")
+
+
+def test_web_export_writes_every_weight_as_float16() -> None:
+    import pytest
+
+    from legal_risk_classifier.export_web import export
+    from legal_risk_classifier.runtime import CNNRuntime
+
+    with tempfile.TemporaryDirectory() as tmp:
+        run_dir = _write_run(Path(tmp))
+        with pytest.raises(FileNotFoundError):
+            export(run_dir, Path(tmp) / "web")  # contract thresholds need an evaluation
+
+        per_class = [{"threshold": 0.7} for _ in LABEL_NAMES]
+        (run_dir / "evaluation_val.json").write_text(json.dumps(
+            {"pooling": "noisy_or", "document_level": {"per_class": per_class}}
+        ), encoding="utf-8")
+        config = export(run_dir, Path(tmp) / "web")
+
+        params = sum(p.numel() for p in CNNRuntime(run_dir).model.parameters())
+        assert (Path(tmp) / "web" / "model.bin").stat().st_size == 2 * params
+        assert config["contract_thresholds"] == [0.7] * NUM_LABELS
+        assert config["window_thresholds"] == [0.5] * NUM_LABELS
+        assert (Path(tmp) / "web" / "example_contract.txt").exists()
