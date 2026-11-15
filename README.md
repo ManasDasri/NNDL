@@ -14,12 +14,16 @@ annotated by lawyers at The Atticus Project.
 **Labels:** Cap on Liability · Non-Compete · License Grant · Audit Rights ·
 Termination for Convenience · Insurance
 
+**Results page:** [algorithmicbit.tech/NNDL](https://www.algorithmicbit.tech/NNDL/) ·
+**Try the demo:** [algorithmicbit.tech/NNDL/demo](https://www.algorithmicbit.tech/NNDL/demo/)
+(runs in your browser)
+
 ```bash
 pip install -e ".[analysis]"
 legal-risk-prepare                     # CUAD spans + document-level splits
 legal-risk-analyze                     # dataset report and figures
 legal-risk-train-cnn --epochs 12       # the CNN baseline
-legal-risk-train-transformer           # defaults to Longformer; needs a GPU
+legal-risk-train-transformer           # defaults to Legal-BERT, the best model; needs a GPU
 legal-risk-evaluate --run_dir outputs/cnn --split test
 ```
 
@@ -205,23 +209,24 @@ all-negative model which accuracy would rate above 95%.
 
 ## Deployment
 
-The results dashboard is a static page published as a Hugging Face Space,
-regenerated from whatever runs exist:
+The results page (`site/index.html`) and the demo (`site/demo/`) are published by
+GitHub Pages at [algorithmicbit.tech/NNDL](https://www.algorithmicbit.tech/NNDL/).
+The demo runs the CNN in the visitor's browser, so there is no server to keep
+running. To publish a new CNN run to it:
 
 ```bash
-python -m legal_risk_classifier.export_dashboard \
-    --run_dir outputs/cnn --repo_id <username>/clause-risk-review --push
+legal-risk-evaluate --run_dir outputs/cnn --split test
+legal-risk-export-web --run_dir outputs/cnn --out_dir site/demo
 ```
 
-The demo is a HuggingFace Space holding a checkpoint and a six-line entry point
-that installs the model code from this repository, so it cannot drift from the
-pipeline the results were measured on. See [deploy/](./deploy/README.md).
+A generated dashboard (`legal-risk-export-dashboard`) can also be pushed to a
+static Hugging Face Space. See [deploy/](./deploy/README.md).
 
 ## Demo
 
 ```bash
 pip install -e ".[demo]"
-legal-risk-demo --run_dir outputs/cnn          # --share for a public link in Colab
+legal-risk-demo --run_dir outputs/cnn          # --share for a temporary public link
 ```
 
 Paste a contract; get the six labels scored against their own thresholds, the

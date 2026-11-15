@@ -58,8 +58,7 @@ Window width is sized from a measured ~1.45 subword tokens per word in legal
 English. It is the one deliberate difference between models, because it is
 bounded by the context window — and that bound is what Problem 2 asks about.
 
-Longformer is the default for `legal-risk-train-transformer`, and the one
-correction worth stating plainly: a wider window produces **fewer, larger**
+One correction about Longformer worth stating plainly: a wider window produces **fewer, larger**
 chunks (3.9 per contract against BERT's 37.9), not smaller ones. Every
 chunk-count argument in this repo follows from that direction.
 
@@ -149,9 +148,9 @@ the CNN. Equal epochs would have been unfair, since 2,600-word windows leave
 1,380 training windows against 13,829, so it was trained for up to 10 epochs;
 both runs stopped early at epoch 9 with their best at epoch 7.
 
-Longformer remains the CLI default because that was a product decision made
-before this result; on these numbers Legal-BERT is the best model, and the
-default is worth revisiting.
+`legal-risk-train-transformer` now defaults to Legal-BERT, the best model on
+these results. It was Longformer, a choice made before either problem was
+answered.
 
 Still owed: the run directories from notebooks 3 and 4 are still on Kaggle, so
 the numbers above are read from printed output. Downloading them unblocks

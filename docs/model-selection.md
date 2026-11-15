@@ -7,8 +7,8 @@ Adding a fourth architecture would add a result; it would not add an answer.
 |---|---|---|---|---|
 | TextCNN | Baseline floor | none — embeddings learned from 358 contracts | chunk | ~4M |
 | `bert-base-uncased` | General-domain control | BooksCorpus + English Wikipedia, ~3.3B words | 512 | 110M |
-| `nlpaueb/legal-bert-base-uncased` | Domain-adapted | 12GB of legislation, court cases and contracts | 512 | 110M |
-| **`allenai/longformer-base-4096`** | Long context — **the default** | RoBERTa, continued on long documents | 4096 | 149M |
+| **`nlpaueb/legal-bert-base-uncased`** | Domain-adapted — **the default** | 12GB of legislation, court cases and contracts | 512 | 110M |
+| `allenai/longformer-base-4096` | Long context | RoBERTa, continued on long documents | 4096 | 149M |
 
 ## The two experiments
 
@@ -71,13 +71,17 @@ with the CNN. Larger windows also mean ten
 times fewer training windows, which this comparison cannot separate from the
 effect of context itself. See [handbook chapter 12](../handbook/12-results.md).
 
-## Why Longformer is the default
+## Why Legal-BERT is the default
 
-`legal-risk-train-transformer` trains Longformer unless told otherwise. Not
-because it won Problem 2 — it did not — but because it is
-the only model whose window usually holds a clause together with the contract
-around it, and because fewer, larger chunks make the document-level pooling
-problem better posed. One correction to the intuition: a wider window produces
+`legal-risk-train-transformer` trains Legal-BERT unless told otherwise, because
+it scored best on both problems' measurements: 0.883 contract F1 against
+BERT's 0.861 and Longformer's 0.831.
+
+Longformer was the default before the results existed, on the reasoning that
+its window usually holds a clause together with the contract around it, and
+that fewer, larger chunks make the document-level pooling problem better posed.
+Problem 2 found the extra context did not help, so that reasoning did not
+survive contact with the data. One correction to the intuition: a wider window produces
 **fewer and larger** chunks, 3.9 per contract against BERT's 37.9, not smaller
 ones. BERT and Legal-BERT remain first-class, because without them Problem 1 has
 no experiment.

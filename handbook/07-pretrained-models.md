@@ -119,12 +119,12 @@ pooling turns out to be the bottleneck. Deferred rather than dismissed: worth
 building only once evaluation shows that pooling, not window classification, is
 what limits the score.
 
-## Longformer is the default
+## Legal-BERT is the default
 
-`legal-risk-train-transformer` defaults to `longformer`. BERT and Legal-BERT
-stay in the registry, because dropping them would remove Problem 1 — the
-comparison that asks whether legal pretraining helps — and that is a graded
-deliverable, not an optional extra.
+`legal-risk-train-transformer` defaults to `legal-bert`, the best model in
+[chapter 12](12-results.md). It used to default to `longformer`, chosen before
+any results existed; Problem 2 then showed the longer window did not help. All
+three stay in the registry, because each is one side of a graded comparison.
 
 One consequence worth stating, because it is easy to get backwards:
 **Longformer produces fewer and larger chunks, not more.** Measured on this

@@ -4,7 +4,7 @@
 
 Copy-paste, from nothing to a trained model.
 
-## Fastest path: Colab, no setup
+## Fastest path: Colab or Kaggle, no setup
 
 Notebooks install everything and call the same command line the repository
 exposes, so nothing in them can drift from what the code actually does.
@@ -17,7 +17,8 @@ exposes, so nothing in them can drift from what the code actually does.
 | [4 · Problem 2](https://colab.research.google.com/github/ManasDasri/NNDL/blob/main/notebooks/4_problem2_longformer.ipynb) | **BERT vs Longformer** | several hours, GPU |
 | [5 · Demo](https://colab.research.google.com/github/ManasDasri/NNDL/blob/main/notebooks/5_demo_and_interpretability.ipynb) | Browser demo and attribution | 10 min |
 
-> **Set the runtime first: Runtime → Change runtime type → T4 GPU.** Notebooks 3
+> **Turn the GPU on first.** Colab: Runtime → Change runtime type → T4 GPU.
+> Kaggle: Settings → Accelerator → GPU T4 x2, with Internet on. Notebooks 3
 > and 4 stop at their first cell with an error if there is no GPU. Before that
 > check existed, a CPU run carried on into training that would have taken many
 > hours, and every evaluation after it failed with `metrics.json` not found.
@@ -37,10 +38,14 @@ plot_comparison(['outputs/cnn', 'outputs/bert', 'outputs/legal_bert'])
 Every notebook is safe to run twice in one session: setup clones once and pulls
 after that, instead of nesting a second copy of the repository inside the first.
 
-**Notebook 3** answers Problem 1 and has been run; see
-[chapter 12](12-results.md). **Notebook 4** answers Problem 2 and has been
-run too. Save the `outputs/` folder before the Colab session ends
-(`!zip -r outputs.zip outputs`), or the run directories are lost.
+**Notebook 3** answers Problem 1 and **notebook 4** answers Problem 2; both have
+been run, see [chapter 12](12-results.md), and the executed notebooks are in
+[`results/`](../results). The notebooks work on Colab and Kaggle alike. On
+Kaggle, **Save Version → Save & Run All** runs them on Kaggle's servers, so the
+browser can be closed; the run folders are kept in the version's Output tab. On
+Colab, save `outputs/` before the session ends (`!zip -r outputs.zip outputs`),
+or the run directories are lost. Run notebook 5 cell by cell rather than with
+Save & Run All: its last cell serves the demo and never finishes.
 
 ## Local setup
 
