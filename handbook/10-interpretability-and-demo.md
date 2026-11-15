@@ -91,7 +91,10 @@ for this; Legal-BERT is about 50 times larger.
 
 `legal-risk-demo` is the same interface in Python (Gradio). It runs anywhere
 Python does, including a notebook cell with `--share` for a temporary public
-link, which is what notebook 5 does.
+link, which is what notebook 5 does. Notebook 5 loads the published checkpoint,
+the one the browser demo was exported from, so both give the same scores and
+flags. It used to train a fresh CNN instead, which had different weights and no
+contract thresholds, so its verdicts did not match the browser demo.
 
 ### One interface decision worth understanding
 
@@ -112,19 +115,6 @@ tuning from [chapter 9](09-evaluation.md#thresholds).
 
 Showing the threshold makes the design legible. Interface honesty is part of
 model honesty.
-
-## The dashboard
-
-A static page reporting the dataset findings, model performance, and — the part
-worth having — a **contract explorer**: ten held-out contracts, chosen to cover
-all six labels and **weighted toward the ones the model gets wrong**, showing
-CUAD's expert annotation and the model's flagged window side by side.
-
-A page showing only successes is a page nobody believes. Of the ten embedded
-contracts, one is fully correct and the rest carry one to three errors.
-
-Every figure is generated from the run data, so regenerating after a new
-training run updates the page with nothing edited by hand.
 
 ## Still to come
 

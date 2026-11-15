@@ -161,7 +161,7 @@ provenance travels with the number.
 `legal-risk-compare` builds the results table from the run directories
 themselves. No number reaches the write-up by being copied by hand, so the
 report cannot drift from what was measured. The same applies to the dataset
-report and the dashboard.
+report.
 
 ## Tests
 

@@ -91,10 +91,6 @@ class LearnedAggregator:
     def load(cls, path: str | Path) -> "LearnedAggregator":
         return cls.from_dict(json.loads(Path(path).read_text(encoding="utf-8")))
 
-    def describe(self) -> str:
-        shape = ", ".join(f"{w:+.2f}" for w in self.weights)
-        return f"top_k={self.top_k} weights=({shape}) bias={self.bias:+.2f}"
-
 
 def _group(chunks: list[Chunk]) -> dict[str, list[int]]:
     grouped: dict[str, list[int]] = {}

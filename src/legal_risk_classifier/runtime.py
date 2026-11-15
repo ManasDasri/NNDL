@@ -1,6 +1,6 @@
 """Load a trained run and score raw contract text.
 
-Shared by the demo and the dashboard exporter so both agree on how a document
+Shared by the demo and the web and Hub exporters so they agree on how a document
 is chunked, scored and pooled. A second implementation of this would drift
 from the evaluation path, and the demo would quietly stop matching the
 reported numbers.
@@ -81,6 +81,7 @@ class CNNRuntime:
         # the default rule and the window thresholds.
         self.pooling, self.pooling_params = "noisy_or", {}
         self.thresholds = list(self.window_thresholds)
+        self.evaluation = None  # file the contract thresholds came from
         for split in ("test", "val"):
             path = self.run_dir / f"evaluation_{split}.json"
             if path.exists():
@@ -90,6 +91,7 @@ class CNNRuntime:
                 self.thresholds = [
                     c["threshold"] for c in evaluation["document_level"]["per_class"]
                 ]
+                self.evaluation = path.name
                 break
 
         self.vocab = Vocabulary.load(self.run_dir / "vocab.json")

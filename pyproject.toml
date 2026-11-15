@@ -20,7 +20,7 @@ dependencies = [
 [project.optional-dependencies]
 # Only the dataset report needs a plotting library.
 analysis = ["matplotlib>=3.8"]
-# The browser demo. Not needed to train, evaluate or report.
+# The Gradio demo (notebook 5). Not needed to train, evaluate or report.
 demo = ["gradio>=4.44"]
 # Publishing a checkpoint to the Hugging Face Hub.
 hub = ["huggingface_hub>=0.25"]
@@ -33,7 +33,6 @@ legal-risk-train-transformer = "legal_risk_classifier.train_transformer:main"
 legal-risk-evaluate = "legal_risk_classifier.evaluate:main"
 legal-risk-compare = "legal_risk_classifier.compare:main"
 legal-risk-demo = "legal_risk_classifier.demo:main"
-legal-risk-export-dashboard = "legal_risk_classifier.export_dashboard:main"
 legal-risk-export-hf = "legal_risk_classifier.export_hf:main"
 legal-risk-export-web = "legal_risk_classifier.export_web:main"
 

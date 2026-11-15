@@ -141,6 +141,11 @@ def main() -> None:
     runtime = CNNRuntime(args.run_dir)
     print(f"loaded {args.run_dir}  (chunk macro F1 "
           f"{runtime.metrics['test_at_tuned_thresholds']['macro_f1']:.3f})")
+    if runtime.evaluation is None:
+        # Without legal-risk-evaluate the contract verdicts use window thresholds
+        # and will not match the reported numbers or the browser demo.
+        print("WARNING: no evaluation_*.json in run_dir; run legal-risk-evaluate first, "
+              "or load the published model (notebook 5).")
     build_interface(runtime).launch(share=args.share, server_port=args.port)
 
 

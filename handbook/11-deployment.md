@@ -2,7 +2,7 @@
 
 [← Interpretability and the demo](10-interpretability-and-demo.md) · [Index](README.md) · [Next: Results so far →](12-results.md)
 
-**Files:** `export_hf.py`, `export_dashboard.py`, `export_web.py`, `site/`, `deploy/`
+**Files:** `export_hf.py`, `export_web.py`, `site/`, `deploy/`
 
 | What | Where | Live |
 |---|---|---|
@@ -73,39 +73,6 @@ It was later turned back on deliberately, once the project was wanted on that
 domain, with one difference: `.github/workflows/pages.yml` publishes only the
 `site/` folder, so the results page and demo are public and nothing else is.
 To take it down: Settings → Pages → Source: None.
-
-## The dashboard is generated, not written
-
-```bash
-python -m legal_risk_classifier.export_dashboard \
-    --run_dir outputs/cnn --repo_id <user>/clause-risk-review --push
-```
-
-Data is exported from the current runs and inlined into the page at build time —
-one self-contained file with no request that can fail. Re-run after any training
-run and the published page picks up the new numbers. **No figure on the page was
-typed by hand.**
-
-## Training on managed GPUs
-
-`deploy/jobs/train_on_hub.py` runs the fine-tuning on Hugging Face Jobs:
-
-```bash
-hf jobs uv run deploy/jobs/train_on_hub.py --flavor t4-small \
-    --secrets HF_TOKEN --env MODEL=legal-bert --env REPO_ID=user/name
-```
-
-The job **clones this repository** rather than vendoring the pipeline, so it
-trains exactly the code the results were measured on, and pushes the finished
-model straight to the Hub.
-
-It refuses to run when no GPU is visible rather than falling back to CPU, where
-a fine-tune would burn money for days and produce nothing.
-
-Jobs requires a **pre-paid credit balance**. At `t4-small` ($0.40/hr) both
-transformers would cost well under a dollar, but with an empty balance the
-submission fails immediately and costs nothing. Colab remains the free
-alternative ([chapter 13](13-run-it-yourself.md)).
 
 ---
 

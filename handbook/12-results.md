@@ -240,7 +240,7 @@ tie; three seeds each put it 0.047 above, with the runs not overlapping.
 
 ## What is left
 
-1. **Download the run folders from Kaggle** (each notebook's Output tab). The numbers here were read from the printed output, so the dashboard and the Hub models still show the CNN only. Then regenerate the comparison with `legal-risk-compare`, re-export the dashboard, and push the models with `legal-risk-export-hf`.
+1. **Download the run folders from Kaggle** (each notebook's Output tab). The numbers here were read from the printed output, so the Hub has the CNN only. Then regenerate the comparison with `legal-risk-compare` and push the models with `legal-risk-export-hf`.
 2. Optional: a fair long-context test, with a legal-pretrained long-context model on a GPU large enough for real batches.
 
 ---
