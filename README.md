@@ -29,13 +29,18 @@ Everything runs from the command line, so a notebook never holds logic. The
 ## Results
 
 Held-out test split: 76 contracts, 3,314 windows, never seen in training.
+Mean ± standard deviation over seeds.
 
-| Model | Window F1 | Window AP | Document F1 | Document AP | Status |
+| Model | Window F1 | Window AP | Document F1 | Document AP | Runs |
 |---|---:|---:|---:|---:|---|
-| TextCNN | 0.663 | — | 0.846 | 0.904 | trained, published |
-| **BERT** | **0.723** | 0.736 | **0.879** | 0.933 | trained |
-| **Legal-BERT** | 0.718 | **0.769** | 0.875 | **0.936** | trained, one seed |
-| Longformer | 0.715† | 0.733† | 0.821 | 0.868 | trained, one seed |
+| TextCNN | 0.658 ± 0.018 | 0.694 ± 0.013 | 0.834 ± 0.017 | 0.898 ± 0.017 | 3 seeds, published |
+| BERT | 0.697 ± 0.014 | 0.750 ± 0.015 | 0.861 ± 0.017 | 0.917 ± 0.012 | 3 seeds |
+| **Legal-BERT** | **0.744 ± 0.005** | **0.805 ± 0.004** | **0.883 ± 0.009** | **0.928 ± 0.005** | 3 seeds |
+| Longformer | 0.743† | 0.770† | 0.831 | 0.886 | 2 runs |
+
+Every run's classification report is in
+[docs/classification-reports.md](./docs/classification-reports.md); the executed
+notebooks, with confusion matrices and metric charts, are in [`results/`](./results).
 
 Document scores use noisy-OR pooling over windows, the default since it beat max
 on both metrics — see [docs/pooling.md](./docs/pooling.md).
@@ -55,7 +60,8 @@ Rarity and difficulty track each other: the weakest label is also the rarest.
 
 **Run-to-run variance is about ±0.03 macro F1** on identical settings, from float
 nondeterminism on GPU. A difference smaller than that is not evidence of
-anything, and should be run across several seeds before it is claimed.
+anything, and should be run across several seeds before it is claimed. Problem 1
+shows why: one run each said "no advantage", three seeds each said otherwise.
 
 ## The two problems
 
@@ -69,13 +75,14 @@ The hypothesis is specific: the gain should concentrate in labels carried by leg
 vocabulary and be smallest for labels carried by ordinary English. Read the
 per-class columns, not the macro score. See [docs/model-selection.md](./docs/model-selection.md).
 
-**Result: no measurable advantage.** Legal-BERT is 0.005 below BERT on window F1,
-while BERT trained with a second seed moved 0.006 from itself. Legal-BERT ranks
-slightly better (AP 0.769 against 0.736 and 0.757), and the two tie at document
-level. The per-label prediction did not hold: the only clear gain is Termination
-for Convenience (+0.064 F1), and Cap on Liability, the most jargon-heavy label,
-gained nothing. Both clearly beat the CNN, most on Non-Compete (0.317 → 0.560).
-Legal-BERT has a single seed so far. Full analysis in
+**Result: legal pretraining helps.** Over three seeds each, Legal-BERT leads
+BERT by +0.047 window F1 (0.744 ± 0.005 against 0.697 ± 0.014) and +0.055 window
+AP, and its worst run beats BERT's best. The per-label prediction holds: the
+gains are largest on Termination for Convenience (+0.107), Cap on Liability
+(+0.077) and License Grant (+0.056), and zero on Insurance (−0.007), the label
+written in ordinary English. At contract level the lead shrinks to +0.022 and
+the runs overlap. An earlier single run of each had called it a tie; one low
+Legal-BERT run decided that. Full analysis in
 [handbook chapter 12](./handbook/12-results.md).
 
 ### Problem 2 — how should whole contracts be represented?
@@ -94,12 +101,11 @@ A null result is a real finding. Most of these clauses are locally signalled:
 *"shall maintain insurance"* is recognisable from its own sentence.
 
 **Result: longer context did not help.** At contract level Longformer scores
-0.821 F1 / 0.868 AP against BERT's 0.879 / 0.933, a gap about twice the noise
-floor, and it does not clear the CNN (0.846 / 0.904). It needed ten epochs to get
-there, because 2,600-word windows leave 1,380 training windows against BERT's
-13,829; a first three-epoch run was undertrained and is not the reported number.
-Early stopping never fired, so Longformer had not fully plateaued, though its
-climb had slowed to 0.01–0.03 per epoch. Full analysis in
+0.831 F1 / 0.886 AP (two runs, 0.834 and 0.828), below every BERT and Legal-BERT
+run and level with the CNN. Both runs stopped early at epoch 9 with their best
+at epoch 7, so it had levelled off. 2,600-word windows leave 1,380 training
+windows against BERT's 13,829, each with a vaguer label, and these clauses are
+recognisable from their own sentence. Full analysis in
 [handbook chapter 12](./handbook/12-results.md).
 
 †Longformer's window scores are on 2,600-word windows, not comparable with the

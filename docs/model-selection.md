@@ -31,11 +31,11 @@ shall" — and should be smallest for labels signalled by ordinary English such
 as Insurance. A uniform improvement across all six labels would be evidence
 that something other than domain knowledge is responsible.
 
-**Result.** Legal-BERT matched BERT (window F1 0.718 against 0.723, a gap inside
-BERT's own seed-to-seed spread) and did not show the concentration predicted
-above: Cap on Liability gained nothing, and the only clear gain was Termination
-for Convenience. Legal-BERT did rank slightly better on AP, which more seeds
-need to confirm. See [handbook chapter 12](../handbook/12-results.md).
+**Result.** Legal pretraining helps. Over three seeds each, Legal-BERT leads by
++0.047 window F1 (0.744 against 0.697) and +0.055 AP, with no overlap between
+the runs, and shows the concentration predicted above: Termination for
+Convenience +0.107, Cap on Liability +0.077, License Grant +0.056, Insurance
+−0.007. A first single run of each had shown a tie. See [handbook chapter 12](../handbook/12-results.md).
 
 The CNN baseline is what makes this measurable. A pretrained model that cannot
 beat convolutions over embeddings learned from 358 contracts is not earning
@@ -65,15 +65,16 @@ finding about the task, not a failed experiment — and it comes with a cost
 argument attached, since Longformer is 35% larger and materially slower to
 train.
 
-**Result.** The answer was no. Longformer reached 0.821 document F1 against
-BERT's 0.879, after ten epochs to BERT's three. Larger windows also mean ten
+**Result.** The answer was no. Longformer reached 0.831 document F1 over two
+runs, against BERT's 0.861 and Legal-BERT's 0.883 over three seeds, and level
+with the CNN. Larger windows also mean ten
 times fewer training windows, which this comparison cannot separate from the
 effect of context itself. See [handbook chapter 12](../handbook/12-results.md).
 
 ## Why Longformer is the default
 
 `legal-risk-train-transformer` trains Longformer unless told otherwise. Not
-because it is expected to win Problem 2 — that is still open — but because it is
+because it won Problem 2 — it did not — but because it is
 the only model whose window usually holds a clause together with the contract
 around it, and because fewer, larger chunks make the document-level pooling
 problem better posed. One correction to the intuition: a wider window produces

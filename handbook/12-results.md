@@ -8,18 +8,25 @@ handbook.
 
 ## What is measured
 
-| Model | Window F1 | Window AP | Document F1 | Document AP | Status |
+Mean ± standard deviation over seeds, on the 76 held-out test contracts.
+
+| Model | Window F1 | Window AP | Document F1 | Document AP | Runs |
 |---|---:|---:|---:|---:|---|
-| TextCNN | 0.663 | — | 0.846 | 0.904 | trained, published |
-| **BERT** | **0.723** | 0.736 | **0.879** | 0.933 | trained (notebook 3) |
-| **Legal-BERT** | 0.718 | **0.769** | 0.875 | **0.936** | trained (notebook 3), one seed |
-| Longformer | 0.715† | 0.733† | 0.821 | 0.868 | trained (notebook 4), one seed |
+| TextCNN | 0.658 ± 0.018 | 0.694 ± 0.013 | 0.834 ± 0.017 | 0.898 ± 0.017 | 3 seeds |
+| BERT | 0.697 ± 0.014 | 0.750 ± 0.015 | 0.861 ± 0.017 | 0.917 ± 0.012 | 3 seeds |
+| **Legal-BERT** | **0.744 ± 0.005** | **0.805 ± 0.004** | **0.883 ± 0.009** | **0.928 ± 0.005** | 3 seeds |
+| Longformer | 0.743† | 0.770† | 0.831 | 0.886 | 2 runs |
 
 Document scores use noisy-OR pooling, with thresholds tuned on validation.
 †Longformer's window scores are on 2,600-word windows and are not comparable
 with the 300-word rows; compare the document columns.
-Notebook 3 also retrained the CNN, which scored 0.656 window F1, within noise of
-the published 0.663.
+
+BERT and Legal-BERT are seeds 42, 1 and 2 from one Kaggle session (notebook 3);
+Longformer is one Colab and one Kaggle run of notebook 4, both after the fixes
+in [docs/weak-points.md](../docs/weak-points.md); the CNN row is the three-seed
+baseline from the same document. Every run's full classification report is in
+[docs/classification-reports.md](../docs/classification-reports.md), and the
+executed notebooks, with their charts, are in [`results/`](../results).
 
 ### CNN, per class
 
@@ -34,72 +41,67 @@ Test split: 3,314 windows from 76 contracts never seen in training.
 | Termination for Convenience | 0.491 | 0.540 | **0.514** | 50 |
 | Non-Compete | 0.400 | 0.351 | **0.374** | 57 |
 
-## Problem 1 — answered: legal pretraining shows no measurable advantage
+## Problem 1 — answered: legal pretraining helps
 
 BERT and Legal-BERT differ only in what they were pretrained on, so this is the
 cleanest comparison in the project.
 
-| Label (window F1) | CNN | BERT | Legal-BERT | Legal − BERT |
-|---|---:|---:|---:|---:|
-| Termination for Convenience | 0.544 | 0.621 | 0.685 | **+0.064** |
-| Non-Compete | 0.317 | 0.560 | 0.509 | −0.051 |
-| Cap on Liability | 0.780 | 0.780 | 0.766 | −0.015 |
-| Audit Rights | 0.696 | 0.738 | 0.725 | −0.013 |
-| License Grant | 0.760 | 0.762 | 0.752 | −0.010 |
-| Insurance | 0.841 | 0.876 | 0.871 | −0.004 |
-| **Macro F1** | 0.656 | 0.723 | 0.718 | −0.005 |
+**Legal-BERT wins on every metric, and by more than the noise.** Window F1
+0.744 ± 0.005 against 0.697 ± 0.014 (+0.047); window AP 0.805 ± 0.004 against
+0.750 ± 0.015 (+0.055). Within the session, Legal-BERT's worst run (0.739) beats
+BERT's best (0.713). It is also the steadier model: its spread across seeds is a
+third of BERT's.
 
-(CNN column is the notebook 3 retrain, so all three come from the same session.)
+**At contract level the gain shrinks.** 0.883 ± 0.009 against 0.861 ± 0.017
+(+0.022), and the runs overlap: BERT's best (0.878) beats Legal-BERT's worst
+(0.875). Legal pretraining helps most at finding the passage; once windows are
+pooled into a yes/no per contract, both models are usually right.
 
-**On F1, a tie.** Legal-BERT is 0.005 below BERT. BERT trained a second time
-with a different seed scored 0.729, a gap of 0.006 from itself.
+| Label (window F1, mean of 3 seeds) | CNN | BERT | Legal-BERT | Legal − BERT | Legal run beats BERT run |
+|---|---:|---:|---:|---:|---:|
+| Termination for Convenience | 0.471 | 0.586 | 0.693 | **+0.107** | 9 of 9 pairs |
+| Cap on Liability | 0.756 | 0.740 | 0.817 | **+0.077** | 9 of 9 |
+| License Grant | 0.753 | 0.741 | 0.797 | **+0.056** | 9 of 9 |
+| Non-Compete | 0.364 | 0.547 | 0.580 | +0.033 | 6 of 9 |
+| Audit Rights | 0.673 | 0.716 | 0.734 | +0.018 | 7 of 9 |
+| Insurance | 0.819 | 0.854 | 0.847 | −0.007 | 4 of 9 |
 
-**On ranking, a slight edge for Legal-BERT.** Window AP 0.769 against BERT's
-0.736 and 0.757 across its two seeds. At document level the two are tied, 0.936
-against 0.933.
+(CNN column is the seed-42 CNN from the same session. "Pairs" compares each of
+Legal-BERT's three runs with each of BERT's three.)
 
-**The per-label prediction did not hold.** Legal pretraining was expected to help
-most on labels carried by legal vocabulary and least on Insurance. Insurance did
-gain nothing, but neither did Cap on Liability, the most jargon-heavy label. The
-only clear gain is Termination for Convenience, whose AP rose from 0.573 to
-0.711.
+**The per-label prediction holds.** Legal pretraining was expected to help most
+on labels carried by legal phrasing and least on Insurance, whose wording is
+ordinary English. The three clear gains are Termination for Convenience, Cap on
+Liability and License Grant, all won in every pairing; Insurance gained nothing.
 
-How much a single run can be trusted per label, from BERT's two seeds:
+> **Conclusion.** Pretraining on legal text helps: +0.047 window F1 and +0.055
+> AP over the same architecture pretrained on general English, concentrated in
+> the clauses written in legal phrasing, and absent on Insurance. At contract
+> level the advantage is smaller (+0.022) and within run-to-run overlap.
 
-| Label | Seed 42 | Seed 1 | Swing |
-|---|---:|---:|---:|
-| Non-Compete | 0.560 | 0.468 | 0.092 |
-| License Grant | 0.762 | 0.821 | 0.059 |
-| Audit Rights | 0.738 | 0.772 | 0.034 |
-| Insurance | 0.876 | 0.904 | 0.028 |
-| Termination for Convenience | 0.621 | 0.631 | 0.010 |
-| Cap on Liability | 0.780 | 0.780 | 0.000 |
+### Why the first answer was "no advantage"
 
-Rare labels swing by up to 0.09 between runs of the *same* model, so Legal-BERT's
-−0.051 on Non-Compete is noise. Its +0.064 on Termination for Convenience exceeds
-that label's own swing, which makes it the one per-label result worth re-checking.
+An earlier Colab session trained Legal-BERT once (0.718) and BERT twice (0.723,
+0.729), and this chapter called it a tie. That Legal-BERT run is the lowest of
+the four Legal-BERT runs that exist; the three Kaggle seeds scored 0.739–0.749.
+With one seed per model, one low run decided the conclusion.
 
-> **Conclusion.** With 358 training contracts, fine-tuning a general-English
-> model closes the gap that legal pretraining would otherwise fill. Legal-BERT
-> matches BERT on F1, ranks marginally better, and does not show the predicted
-> vocabulary-specific gains.
-
-**Still owed:** Legal-BERT has one seed and BERT two; the seed loop in notebook 3
-was cut short. Two or three Legal-BERT seeds would settle whether the AP edge and
-the Termination for Convenience gain are real.
+Pooling all nine runs from both sessions, Legal-BERT still leads on window F1
+(0.738 mean over 4 runs against BERT's 0.709 over 5), by less than within one
+session, and the runs overlap. **On window AP they do not overlap at all:**
+every Legal-BERT run (0.769–0.808) ranks clauses better than every BERT run
+(0.733–0.760). Per label, only Termination for Convenience gained in both
+sessions (+0.064 in Colab, +0.107 on Kaggle); Cap on Liability gained on Kaggle
+but not in Colab. The Kaggle session is the controlled comparison, since all six
+runs share one environment, so it is the one reported above.
 
 ## Pretrained models beat the CNN — clearly
 
-BERT is +0.07 window F1 and +0.03 document F1 above the CNN, more than twice the
-noise floor. The largest gain is on the rarest label: **Non-Compete, 0.317 →
-0.560.**
+Legal-BERT is +0.086 window F1 and +0.049 document F1 above the CNN; BERT +0.039
+and +0.027. The largest gain is on the rarest label: **Non-Compete, 0.364 →
+0.547 (BERT) and 0.580 (Legal-BERT).**
 
 ## Problem 2 — answered: longer context did not help
-
-> **Provisional.** This Longformer run predates two fixes found afterwards: its
-> tokenizer was spending tokens on layout whitespace, which cut off the tail of
-> 20% of its windows, and the last partial batch of each epoch was not trained.
-> See [docs/weak-points.md](../docs/weak-points.md). Notebook 4 reruns it.
 
 BERT reads 300-word windows, Longformer 2,600-word ones. Only the contract-level
 scores compare fairly: Longformer's test set is 326 windows against BERT's 3,314,
@@ -108,58 +110,63 @@ F1 measures a different task.
 
 | Model | Window | Windows per contract | Document F1 | Document AP |
 |---|---:|---:|---:|---:|
-| TextCNN | 300 words | ~38 | 0.846 | 0.904 |
-| **BERT** | 300 words | ~38 | **0.879** | **0.933** |
-| Longformer | 2,600 words | ~4 | 0.821 | 0.868 |
+| TextCNN | 300 words | ~38 | 0.834 ± 0.017 | 0.898 ± 0.017 |
+| BERT | 300 words | ~38 | 0.861 ± 0.017 | 0.917 ± 0.012 |
+| **Legal-BERT** | 300 words | ~38 | **0.883 ± 0.009** | **0.928 ± 0.005** |
+| Longformer | 2,600 words | ~4 | 0.831 (0.834, 0.828) | 0.886 (0.892, 0.880) |
 
-Longformer finishes 0.058 F1 and 0.065 AP below BERT, about twice the ±0.03
-noise floor, and does not clear the CNN either. One seed, so the size of the gap
-is uncertain; its direction is not close.
+Both Longformer runs score below every BERT run (lowest 0.844) and every
+Legal-BERT run (lowest 0.875), and level with the CNN. Two runs agree to within
+0.006, so the result is not one unlucky seed.
 
-### The first run was not a fair test, and why
+### Three runs, and what each one measured
 
-Notebook 4 originally trained 3 epochs, like BERT. But a 2,600-word window
-yields 1,380 training windows against BERT's 13,829, so equal epochs meant 259
-optimizer updates against roughly 2,600. That run scored 0.759 document F1 with
-validation F1 still rising 0.1 per epoch. It measured undertraining, not context
-length, and was rerun with 10 epochs and early stopping (patience 2).
+1. **Three epochs, before the fixes: 0.759.** A 2,600-word window yields 1,380
+   training windows against BERT's 13,829, so equal epochs meant 259 optimizer
+   updates against about 2,600, and validation F1 was still rising 0.1 per
+   epoch. That run measured undertraining, not context length.
+2. **Ten epochs, before the fixes: 0.821 / 0.868.** Its tokenizer spent tokens on
+   layout whitespace, which cut off the tail of 20% of its windows, and the last
+   partial batch of each epoch was not trained.
+3. **Ten epochs, after the fixes, run twice: 0.834 / 0.892 (Colab) and
+   0.828 / 0.880 (Kaggle).** The fixes were worth about +0.01 F1 and +0.02 AP.
 
-| Epoch | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| Val F1 | 0.218 | 0.401 | 0.500 | 0.476 | 0.608 | 0.605 | 0.646 | 0.659 | 0.663 | 0.689 |
-| Train loss | 1.18 | 1.08 | 0.89 | 0.71 | 0.58 | 0.45 | 0.36 | 0.27 | 0.22 | 0.18 |
+Both fixed runs stopped early at epoch 9 with their best epoch at 7, so
+Longformer has now levelled off; the earlier caveat that it might still be
+climbing no longer applies.
 
-**The caveat that belongs with the result:** early stopping never fired. Epoch
-10 was the best epoch, so Longformer had not fully plateaued, and at 863 updates
-it still had a third of BERT's. The climb had slowed to about 0.01 to 0.03 per
-epoch with training loss already at 0.18, so the remaining headroom looks small
-next to a 0.058 gap, but that is an inference, not a measurement.
+| Epoch | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Val F1, Colab | 0.301 | 0.403 | 0.589 | 0.535 | 0.662 | 0.649 | **0.700** | 0.685 | 0.661 |
+| Val F1, Kaggle | 0.102 | 0.366 | 0.448 | 0.549 | 0.563 | 0.649 | **0.692** | 0.680 | 0.682 |
 
 ### Where it won and lost, per label
 
-Longformer's window F1 by label: License Grant 0.901, Insurance 0.871, Audit
-Rights 0.833, Cap on Liability 0.783, Non-Compete 0.567, Termination for
-Convenience 0.333. Termination for Convenience is the label that sinks it; that
-clause is typically one short sentence, which a 2,600-word window dilutes.
+Contract F1 per label (Colab run): License Grant 0.989, Audit Rights 0.943,
+Insurance 0.935, Cap on Liability 0.933, Termination for Convenience 0.618,
+Non-Compete 0.586. The two weak labels have high recall and low precision (0.54
+and 0.46): Longformer flags many contracts that do not contain them. Both are
+clauses that are typically one or two sentences, which a 2,600-word window
+dilutes.
 
 ### What it cost
 
-149M parameters against 110M, ten epochs against three, batch size 1 with
+149M parameters against 110M, nine epochs against three, batch size 1 with
 gradient checkpointing to fit a T4. More compute for a lower score.
 
 > **Conclusion.** On this task, with 358 training contracts, a 2,600-word window
 > did worse than a 300-word one. These clauses are locally signalled, so the
 > extra context adds little, while larger windows leave ten times fewer training
-> examples. Chapter 4 said a null result here would be a finding about the task;
-> this is that finding.
+> examples, each with a vaguer label. Chapter 4 said a null result here would be
+> a finding about the task; this is that finding. A fairer test of long context
+> would need a legal-pretrained long-context model and a larger GPU.
 
 ### Noisy-OR at four windows per contract
 
-Pooling lifted Longformer from 0.715 (window) to 0.821 (contract), a gain of
-0.106 against 0.156 for BERT. The prediction that noisy-OR would matter *more*
-with fewer windows is **not confirmed**: with only ~4 windows there is less to
-combine. Comparing it against max on Longformer's own predictions needs the run
-directory, which did not leave Colab.
+Pooling lifted Longformer by about 0.09 (0.749 → 0.834 and 0.736 → 0.828),
+against 0.164 for BERT at ~38 windows. The prediction that noisy-OR would matter
+*more* with fewer windows is **not confirmed**: with only ~4 windows there is
+less to combine.
 
 ## What the CNN results already tell us
 
@@ -196,9 +203,9 @@ Compare Non-Compete, whose language ("shall not engage", "restricted
 activities") overlaps heavily with ordinary contractual obligations.
 
 **Signal clarity matters as much as frequency.** It also set up a prediction
-for Problem 1: Legal-BERT should help *least* on Insurance. It did gain nothing
-there (−0.004), but it gained nothing almost everywhere else too, so the
-prediction is not confirmed in any meaningful sense.
+for Problem 1: Legal-BERT should help *least* on Insurance. Over three seeds it
+gained nothing there (−0.007) while gaining 0.06–0.11 on the labels written in
+legal phrasing, so the prediction holds.
 
 ### The model confuses "liability" with "liability"
 
@@ -212,7 +219,8 @@ guesswork.
 
 ### Pooling to document level is worth 0.15–0.18
 
-CNN 0.663 → 0.846, BERT 0.723 → 0.879, Legal-BERT 0.718 → 0.875. The
+CNN 0.658 → 0.834, BERT 0.697 → 0.861, Legal-BERT 0.744 → 0.883 (three-seed
+means). The
 existential question — *does this contract contain the clause anywhere* — is
 genuinely easier than localising every instance, and noisy-OR pooling exploits
 that on transformer predictions as well as on the CNN's.
@@ -225,17 +233,15 @@ Floating-point non-determinism on GPU. So a difference smaller than about
 **±0.03 macro F1 is not evidence of anything.**
 
 This was written down **before** the transformer results existed, with the
-rule that a Legal-BERT win of 0.02 would be reported as within variance rather
-than as a finding. The real gap came out at −0.005, so the rule was not needed
-to deflate a claimed win; it is why the result above is called a tie rather than
-a loss.
+rule that a single-run difference of 0.02 would be reported as within variance
+rather than as a finding, and settled with more seeds. That is what happened.
+The first single runs put Legal-BERT 0.005 *below* BERT, which was reported as a
+tie; three seeds each put it 0.047 above, with the runs not overlapping.
 
 ## What is left
 
-1. **Save notebook 3's `outputs/` folder.** These numbers were read from the notebook's printed output; the run directories never left Colab, so the dashboard and the Hub models cannot be updated yet.
-2. Run two or three more Legal-BERT seeds, and a second Longformer seed.
-3. Save the `outputs/` folders from both notebooks.
-4. Then regenerate the comparison with `legal-risk-compare`, re-export the dashboard, and push the models with `legal-risk-export-hf`.
+1. **Download the run folders from Kaggle** (each notebook's Output tab). The numbers here were read from the printed output, so the dashboard and the Hub models still show the CNN only. Then regenerate the comparison with `legal-risk-compare`, re-export the dashboard, and push the models with `legal-risk-export-hf`.
+2. Optional: a fair long-context test, with a legal-pretrained long-context model on a GPU large enough for real batches.
 
 ---
 
