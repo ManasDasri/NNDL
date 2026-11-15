@@ -46,7 +46,7 @@ throw away the rare labels entirely.
 > answers, and the resulting number is unreproducible.
 
 This also has a user-interface consequence. In the demo, a label can be flagged
-at 0.223 while another is *not* flagged at 0.341. That looks like a bug, so the
+at 0.15 while another is *not* flagged at 0.60. That looks like a bug, so the
 interface shows each label's threshold beside its score
 ([chapter 10](10-interpretability-and-demo.md)).
 

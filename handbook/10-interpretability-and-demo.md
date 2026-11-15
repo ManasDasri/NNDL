@@ -66,31 +66,47 @@ than reimplementing inference.
 
 That is deliberate. A demo that chunked or pooled differently from the
 evaluation would show numbers that do not match the reported ones — worse than
-having no demo. A test asserts the runtime's document score equals the maximum
-over its windows, so the two cannot drift apart silently.
+having no demo. The runtime reads the pooling rule (noisy-OR) and the
+contract-level thresholds from the run's `evaluation_*.json`, the same ones the
+reported results used, and tests check both, so the two cannot drift apart
+silently.
+
+It once did drift: the runtime pooled with max and judged contracts against the
+window-level thresholds, after evaluation had moved to noisy-OR with its own
+contract-level thresholds. The demo's verdicts were therefore not the reported
+model's verdicts. That is now fixed, and it is the reason for the tests.
 
 ## The demo
 
-`legal-risk-demo` opens a browser interface: paste a contract, get the six
-labels scored, the flagged windows quoted with confidence and character offsets,
-and the phrases that triggered the selected label.
+**Live at [algorithmicbit.tech/NNDL/demo](https://www.algorithmicbit.tech/NNDL/demo/).**
+Paste a contract, get the six labels scored, the flagged windows quoted with
+their scores, and the phrases that triggered the selected label.
 
-Runs anywhere Python does, including a Colab cell with `--share` for a public
-link.
+It runs in the visitor's browser. `legal-risk-export-web` writes the CNN as
+float16 weights, and `site/demo/model.js` ports the chunking, model, pooling and
+attribution to plain JavaScript; on test contracts it matches Python to within
+1e-6, with identical verdicts and phrases. No server means nothing to pay for or
+keep awake, and nothing pasted leaves the browser. Only the CNN is small enough
+for this; Legal-BERT is about 50 times larger.
+
+`legal-risk-demo` is the same interface in Python (Gradio). It runs anywhere
+Python does, including a notebook cell with `--share` for a temporary public
+link, which is what notebook 5 does.
 
 ### One interface decision worth understanding
 
-The score panel shows **each label's own threshold** beside its score:
+The score panel shows **each label's own contract-level threshold** beside its
+score. With the published CNN's thresholds (scores illustrative):
 
 ```
-Cap on Liability            ·  thr 0.78     0.341
-Non-Compete                 ✓  thr 0.28     0.989
-Termination for Convenience ✓  thr 0.22     0.223
-Insurance                   ✓  thr 0.83     1.000
+Cap on Liability            ·  thr 0.82     0.700
+Non-Compete                 ·  thr 0.75     0.600
+Termination for Convenience ✓  thr 0.42     0.450
+Insurance                   ✓  thr 0.09     0.150
 ```
 
-Look at rows 1 and 3. Termination is **flagged at 0.223** while Cap on Liability
-is **not flagged at 0.341**. Without the threshold visible, that reads as an
+Look at rows 2 and 4. Insurance is **flagged at 0.150** while Non-Compete is
+**not flagged at 0.600**. Without the threshold visible, that reads as an
 obvious bug — and someone would "fix" it by forcing a single cutoff, undoing the
 tuning from [chapter 9](09-evaluation.md#thresholds).
 

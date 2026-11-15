@@ -66,7 +66,7 @@ Every design choice, what we rejected, and why. One page, for when someone asks
 | **Noisy-OR** pooling | Max; mean; top-k; learned | Max cannot distinguish 0.80+0.79 from 0.80 alone — it discards corroboration. Noisy-OR combines independent evidence, leads on AP (0.904 vs 0.899), and is never worse than max. Mean is decisively bad (0.511). |
 | Automatic rule selection **rejected** | Pick the rule on validation | Overfits at 76 documents: selects the worst serious rule on F1, a mediocre one on AP. Flag kept with a warning. |
 | Learned aggregator **rejected as default** | Learn the combination | Can represent max, top-k and noisy-OR, yet loses (0.838 vs 0.846) even fitted on 358 documents. Kept as a documented experiment. |
-| Document thresholds tuned **separately**, on validation | Reuse window thresholds; tune on test | A pooled max is systematically higher. Tuning on test is leakage — it cost us 0.067 of fake score ([ch 9](09-evaluation.md#the-leak-we-caught)). |
+| Document thresholds tuned **separately**, on validation | Reuse window thresholds; tune on test | A pooled score is systematically higher than a window score. Tuning on test is leakage — it cost us 0.067 of fake score ([ch 9](09-evaluation.md#the-leak-we-caught)). |
 | Report **average precision** too | F1 only | Threshold-free, so it is the stable number when thresholds are in question. |
 | **Generate** the comparison table | Write it by hand | No number reaches the write-up by being copied. |
 
@@ -75,12 +75,12 @@ Every design choice, what we rejected, and why. One page, for when someone asks
 | Decision | Alternative rejected | Why |
 |---|---|---|
 | CNN **filter attribution** | Attention heatmaps only | A convolution's receptive field is uncontested; attention as explanation is disputed. Attribution returns a literal phrase. |
-| Demo reuses the **evaluation runtime** | Separate inference path | A demo that chunks differently shows numbers that do not match the report — worse than no demo. |
-| Show the **threshold** next to each score | Score alone | Otherwise a 0.223 flag beside an unflagged 0.341 looks like a bug, and someone "fixes" it. |
+| Demo reuses the **evaluation runtime** | Separate inference path | A demo that chunks or pools differently shows numbers that do not match the report — worse than no demo. The one port, to JavaScript, is checked against Python. |
+| Show the **threshold** next to each score | Score alone | Otherwise a 0.15 flag beside an unflagged 0.60 looks like a bug, and someone "fixes" it. |
 | Embed contracts the model gets **wrong** | Only successes | A page of only successes is a page nobody believes. |
-| **Hugging Face Space** for hosting | GitHub Pages | A user-level custom domain makes every project repo a subpath of it, with no per-repo opt-out ([ch 11](11-deployment.md#why-not-github-pages)). |
+| **GitHub Pages, `site/` only** | Pages from the repo root; a Hugging Face Space | The root published the whole README under the personal domain ([ch 11](11-deployment.md)); publishing only `site/` exposes the results page and demo and nothing else. |
+| Demo runs **in the browser** | A Gradio Space | Free Gradio Spaces now need a paid plan. The CNN is 8 MB as float16, so the browser runs it with no server, for free, and nothing pasted leaves the page. |
 | Export models to **standard HF layout** | Upload `model.pt` | The raw checkpoint has `backbone.`-prefixed keys that `from_pretrained` cannot load. |
-| Space `app.py` **installs from the repo** | Vendor a copy | A vendored copy drifts from the evaluated pipeline. |
 
 ## Engineering
 

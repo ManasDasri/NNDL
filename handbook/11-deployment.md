@@ -2,16 +2,18 @@
 
 [← Interpretability and the demo](10-interpretability-and-demo.md) · [Index](README.md) · [Next: Results so far →](12-results.md)
 
-**Files:** `export_hf.py`, `export_dashboard.py`, `deploy/`
-
-Three things get published, each to a different place because each has different
-needs.
+**Files:** `export_hf.py`, `export_dashboard.py`, `export_web.py`, `site/`, `deploy/`
 
 | What | Where | Live |
 |---|---|---|
-| Results dashboard | Hugging Face static Space | [clause-risk-review](https://kenx049-clause-risk-review.static.hf.space) |
+| Results page | GitHub Pages, from `site/` | [algorithmicbit.tech/NNDL](https://www.algorithmicbit.tech/NNDL/) |
+| Live demo | In the browser, from `site/demo/` | [algorithmicbit.tech/NNDL/demo](https://www.algorithmicbit.tech/NNDL/demo/) |
+| Results page, mirror | Hugging Face static Space | [clause-risk-review](https://kenx049-clause-risk-review.static.hf.space) |
 | Trained model | Hugging Face Hub | [cuad-clause-risk-cnn](https://huggingface.co/KenX049/cuad-clause-risk-cnn) |
-| Live demo | Hugging Face Space (Gradio) | prepared, not yet launched |
+
+The demo was planned as a Gradio Space, but free Hugging Face Spaces now run
+only static sites; Gradio and Docker Spaces need a PRO plan. So the CNN runs in
+the visitor's browser instead (see [chapter 10](10-interpretability-and-demo.md#the-demo)).
 
 ## Publishing a model is not uploading a file
 
@@ -59,27 +61,18 @@ The CNN's card is handled honestly too: it is not a transformers architecture,
 so the card points at `CNNRuntime` rather than promising a `from_pretrained`
 that would fail.
 
-## Why not GitHub Pages
+## GitHub Pages, and why it was first turned off
 
-We tried it first. It is the wrong tool, for a structural reason worth
-recording.
+A custom domain attached to a **user-level** GitHub Pages site makes every
+project repository's Pages site a subpath of that domain. Enabling Pages here
+from the repository root published the whole README under the personal domain
+at `algorithmicbit.tech/NNDL/`, which was not wanted, so it was switched off and
+the results page went to a static Hugging Face Space.
 
-A custom domain attached to a **user-level** GitHub Pages site makes *every*
-project repository serve as a subpath of that domain. Enabling Pages on this
-repository published a course project under a personal portfolio at
-`algorithmicbit.tech/NNDL/`, and there is **no per-repository way** to keep
-Pages while opting out of the domain.
-
-Any GitHub Pages hosting under that account lands on the portfolio. So the
-answer was not "configure it differently" but "use something else".
-
-A static Hugging Face Space has its own URL, no relationship to any other site,
-costs nothing, and uses the **same account as the model and demo** — one
-credential for the whole deployment story instead of two.
-
-> If Pages was ever enabled on a fork of this repository, turn it off under
-> Settings → Pages → Source: None. The REST API refuses to deactivate a Pages
-> site, so it cannot be scripted.
+It was later turned back on deliberately, once the project was wanted on that
+domain, with one difference: `.github/workflows/pages.yml` publishes only the
+`site/` folder, so the results page and demo are public and nothing else is.
+To take it down: Settings → Pages → Source: None.
 
 ## The dashboard is generated, not written
 

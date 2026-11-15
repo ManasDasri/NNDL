@@ -102,8 +102,10 @@ reported here.
   disturbing the Problem 1 comparison.
 - **Thresholds are tuned on 76 validation contracts.** That is the main source of
   the ±0.03 run-to-run noise, and the only cure is more labelled data.
-- **Legal-BERT and Longformer have one seed each.** More seeds would tighten every
-  comparison in this project more than any modelling change above.
+- **Few runs per model.** BERT, Legal-BERT and the CNN have three seeds each and
+  Longformer two. That settled Problem 1, which one seed got wrong; more seeds
+  would still tighten the per-label comparisons more than any modelling change
+  above.
 
 ## Classification reports for every run
 
