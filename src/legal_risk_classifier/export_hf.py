@@ -99,9 +99,10 @@ def render_card(summary: dict, run_dir: Path, repo_id: str | None) -> str:
     is_cnn = summary["model"] == "textcnn"
 
     evaluation_path = run_dir / "evaluation_test.json"
-    document = None
+    document, pooling = None, "noisy_or"
     if evaluation_path.exists():
-        document = json.loads(evaluation_path.read_text(encoding="utf-8")).get("document_level")
+        evaluation = json.loads(evaluation_path.read_text(encoding="utf-8"))
+        document, pooling = evaluation.get("document_level"), evaluation.get("pooling", pooling)
 
     lines = [
         CARD_HEADER,
@@ -141,7 +142,12 @@ def render_card(summary: dict, run_dir: Path, repo_id: str | None) -> str:
 
     lines += ["", f"**Chunk-level macro F1: {tuned.get('macro_f1', float('nan')):.3f}**"]
     if document:
-        lines.append(f"**Document-level macro F1: {document['macro_f1']:.3f}** (max-pooled over windows)")
+        ap = document.get("macro_average_precision")
+        lines.append(
+            f"**Document-level macro F1: {document['macro_f1']:.3f}**"
+            + (f", macro AP {ap:.3f}" if ap is not None else "")
+            + f" ({pooling.replace('_', '-')} over windows)"
+        )
 
     lines += [
         "",
@@ -160,12 +166,20 @@ def render_card(summary: dict, run_dir: Path, repo_id: str | None) -> str:
         "",
         "Decision thresholds are tuned per label on the validation split rather than fixed at",
         "0.5, because each label has its own positive rate. Using 0.5 will cost you recall.",
+        "A window and a whole contract are different decisions, so each has its own set:",
+        "the window threshold says whether a passage fired, the contract threshold whether",
+        "the contract gets the label after its windows are combined.",
         "",
-        "| Label | Threshold |",
-        "| --- | ---: |",
     ]
     thresholds = summary.get("thresholds") or [0.5] * len(LABEL_NAMES)
-    lines += [f"| {name} | {thresholds[i]:.2f} |" for i, name in enumerate(LABEL_NAMES)]
+    if document:
+        contract = [row["threshold"] for row in document["per_class"]]
+        lines += ["| Label | Window | Contract |", "| --- | ---: | ---: |"]
+        lines += [f"| {name} | {thresholds[i]:.2f} | {contract[i]:.2f} |"
+                  for i, name in enumerate(LABEL_NAMES)]
+    else:
+        lines += ["| Label | Window |", "| --- | ---: |"]
+        lines += [f"| {name} | {thresholds[i]:.2f} |" for i, name in enumerate(LABEL_NAMES)]
 
     lines += ["", "## Usage", ""]
     if is_cnn:
@@ -180,6 +194,8 @@ def render_card(summary: dict, run_dir: Path, repo_id: str | None) -> str:
             "prediction = runtime.predict_document(contract_text)",
             "print(prediction.predicted, prediction.document_scores)",
             "```",
+            "",
+            "Or try it in the browser, no install: https://www.algorithmicbit.tech/NNDL/demo/",
         ]
     else:
         lines += [
