@@ -28,6 +28,24 @@ in any window flags the contract. Thresholds are tuned per label on the
 validation split, so they are not all 0.5.
 """
 
+# A held-out test contract from CUAD (CC BY 4.0), annotated with Cap on
+# Liability, Insurance and License Grant. Chosen because the model gets all
+# three right, so it shows a working case, not a typical one.
+TEST_CONTRACT = (Path(__file__).parent / "example_contract.txt").read_text()
+
+# A short made-up excerpt with four of the six clause types. Far shorter than
+# the contracts the model trained on, and it misses most of them, including the
+# "in no event shall ... exceed" liability cap (see handbook chapter 10).
+EXCERPT = (
+    "Supplier shall maintain, at its own expense, commercial general liability insurance "
+    "with limits of not less than $2,000,000 per occurrence, and shall provide a certificate "
+    "of insurance naming Customer as an additional insured. In no event shall either party's "
+    "aggregate liability under this Agreement exceed the fees paid in the twelve months "
+    "preceding the claim. Customer may terminate this Agreement for convenience at any time "
+    "upon thirty (30) days' prior written notice. Supplier grants Customer a non-exclusive, "
+    "non-transferable license to use the Software during the Term."
+)
+
 
 def analyse(runtime: CNNRuntime, text: str, label: str) -> tuple[dict[str, float], str, str]:
     """Score text and describe one label's evidence. The demo's whole logic."""
@@ -90,6 +108,12 @@ def build_interface(runtime: CNNRuntime):
                     label="Inspect passages for",
                 )
                 run = gr.Button("Analyse", variant="primary")
+                gr.Examples(
+                    [[TEST_CONTRACT, "Insurance"], [EXCERPT, "Cap on Liability"]],
+                    inputs=[text, label],
+                    example_labels=["Test-set contract (sponsorship agreement)",
+                                    "Short made-up excerpt (shows its limits)"],
+                )
             with gr.Column(scale=2):
                 scores = gr.Label(label="Document-level scores", num_top_classes=6)
 
