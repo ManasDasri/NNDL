@@ -35,6 +35,7 @@ legal-risk-compare = "legal_risk_classifier.compare:main"
 legal-risk-demo = "legal_risk_classifier.demo:main"
 legal-risk-export-dashboard = "legal_risk_classifier.export_dashboard:main"
 legal-risk-export-hf = "legal_risk_classifier.export_hf:main"
+legal-risk-export-web = "legal_risk_classifier.export_web:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

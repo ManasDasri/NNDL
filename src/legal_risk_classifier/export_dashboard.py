@@ -69,7 +69,7 @@ def _prediction_summary(runtime: CNNRuntime, doc: Document) -> dict:
                     "char_start": hit.char_start,
                     "text": hit.text[:900],
                 }
-                for hit in prediction.hits(label, threshold=runtime.threshold_for(label))[:2]
+                for hit in prediction.hits(label, threshold=runtime.window_threshold_for(label))[:2]
             ]
             for label in LABEL_NAMES
         },

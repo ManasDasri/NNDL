@@ -18,6 +18,7 @@ import torch
 from .chunking import Chunk, chunk_document
 from .cuad import Document
 from .labels import LABEL_NAMES, LABEL_TO_INDEX
+from .pooling import aggregate
 from .textcnn import TextCNN
 from .vocab import Vocabulary
 
@@ -66,12 +67,30 @@ class CNNRuntime:
         self.chunking = summary["chunking"]
         self.metrics = summary
 
+        # Two operating points, as in evaluation: window thresholds decide which
+        # passages fired, contract thresholds decide which labels the contract
+        # gets. Both were tuned on validation.
         training_path = self.run_dir / "training.json"
-        self.thresholds = (
+        self.window_thresholds = (
             json.loads(training_path.read_text(encoding="utf-8"))["thresholds"]
             if training_path.exists()
             else [0.5] * len(LABEL_NAMES)
         )
+        # legal-risk-evaluate records the pooling rule and the contract-level
+        # thresholds it tuned on validation. Without an evaluation, fall back to
+        # the default rule and the window thresholds.
+        self.pooling, self.pooling_params = "noisy_or", {}
+        self.thresholds = list(self.window_thresholds)
+        for split in ("test", "val"):
+            path = self.run_dir / f"evaluation_{split}.json"
+            if path.exists():
+                evaluation = json.loads(path.read_text(encoding="utf-8"))
+                self.pooling = evaluation["pooling"]
+                self.pooling_params = evaluation.get("pooling_params") or {}
+                self.thresholds = [
+                    c["threshold"] for c in evaluation["document_level"]["per_class"]
+                ]
+                break
 
         self.vocab = Vocabulary.load(self.run_dir / "vocab.json")
         state = torch.load(self.run_dir / "model.pt", map_location="cpu")
@@ -89,7 +108,12 @@ class CNNRuntime:
         self.model.eval()
 
     def threshold_for(self, label: str) -> float:
+        """Contract-level threshold: does the contract get this label?"""
         return float(self.thresholds[LABEL_TO_INDEX[label]])
+
+    def window_threshold_for(self, label: str) -> float:
+        """Window-level threshold: did this passage fire for the label?"""
+        return float(self.window_thresholds[LABEL_TO_INDEX[label]])
 
     @torch.no_grad()
     def predict_document(self, text: str, doc_id: str = "input") -> DocumentPrediction:
@@ -109,8 +133,8 @@ class CNNRuntime:
         )
         probs = torch.sigmoid(self.model(input_ids=batch)).numpy()
 
-        # Max-pooling, matching pooling.pool_to_documents.
-        pooled = probs.max(axis=0)
+        # The same pooling rule the evaluation used, noisy-OR by default.
+        pooled = aggregate(probs, self.pooling, **self.pooling_params)
         scores = {name: float(pooled[i]) for i, name in enumerate(LABEL_NAMES)}
         predicted = [name for name in LABEL_NAMES if scores[name] >= self.threshold_for(name)]
         return DocumentPrediction(doc_id, chunks, probs, scores, predicted)

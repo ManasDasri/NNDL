@@ -16,7 +16,7 @@ import argparse
 from pathlib import Path
 
 from .attribution import explain
-from .labels import LABEL_NAMES
+from .labels import LABEL_NAMES, LABEL_TO_INDEX
 from .runtime import CNNRuntime
 
 DESCRIPTION = """
@@ -62,7 +62,7 @@ def analyse(runtime: CNNRuntime, text: str, label: str) -> tuple[dict[str, float
         for name in LABEL_NAMES
     }
 
-    threshold = runtime.threshold_for(label)
+    threshold = runtime.window_threshold_for(label)
     hits = prediction.hits(label, threshold=threshold)
     if hits:
         passages = "\n\n---\n\n".join(
@@ -73,7 +73,7 @@ def analyse(runtime: CNNRuntime, text: str, label: str) -> tuple[dict[str, float
     else:
         passages = (
             f"No passage reached the {label} threshold of {threshold:.2f}. "
-            f"The strongest window scored {prediction.document_scores[label]:.2f}."
+            f"The strongest window scored {prediction.chunk_probs[:, LABEL_TO_INDEX[label]].max():.2f}."
         )
 
     phrases = explain(runtime.model, runtime.vocab, hits[0].text if hits else text, label, top_n=6)
